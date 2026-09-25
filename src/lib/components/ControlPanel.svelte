@@ -549,6 +549,10 @@
       </svg>
       GitHub
     </a>
+    
+    <!-- 複数画面追加　-->
+    <a href="/multi">複数画面</a>
+    
     <div class="lang-switch" aria-label={$t("common.language")}>
       <button
         class:active={$locale === "en"}

@@ -53,6 +53,7 @@ export const hiddenChannels = writable<Set<number>>(new Set());
 export const agentCommStats = writable<Map<number, { speak: number; bytes: number }>>(new Map());
 export const agentSubscriptions = writable<Map<number, number[]>>(new Map());
 export const initialBlockadeCost = writable(0);
+export const detailViewport = writable<{ cx: number; cy: number; halfW: number; halfH: number } | null>(null);
 
 export const selectedEntity = derived(
   [entities, selectedId],
