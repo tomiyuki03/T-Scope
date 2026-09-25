@@ -15,6 +15,7 @@
     agentReceivedComms,
     agentVisibleIds,
     animatedEntities,
+    detailViewport,
     entities,
     focusPoint,
     followMode,
@@ -45,6 +46,9 @@
 
   let canvas: HTMLCanvasElement;
   let deck: Deck<OrthographicView> | null = null;
+
+  // Tomi Split-screen tracking
+  const {alwaysFollow = false, suppressHighlight = false}: {alwaysFollow?: boolean; suppressHighlight?: boolean} = $props();
 
   // ── Color helpers ─────────────────────────────────────────────────────────
 
@@ -677,18 +681,25 @@
   let fitZoom = 0;
 
   function followAgent(emap: Map<number, SimEntity>, selId: number | null) {
-    if (!$followMode || selId === null || !deck) return;
+    //Tomi 
+    if (!(alwaysFollow || $followMode) || selId === null || !deck) return;
     const e = emap.get(selId);
     if (!e || !isAgent(e.urn)) return;
     const h = e as HumanEntity;
+    if (h.x == 0 && h.y == 0) return;
     deck.setProps({
       initialViewState: {
         target: [h.x, h.y, 0] as [number, number, number],
-        zoom: currentZoom,
+        zoom: fitZoom　+ 3,
         minZoom: currentZoom - 5,
         maxZoom: currentZoom + 10,
       },
     });
+    if(alwaysFollow) {
+      const worldWidth = canvas.clientWidth / 2 ** (fitZoom + 3);
+      const worldHeight = canvas.clientHeight / 2 ** (fitZoom + 3);
+      detailViewport.set({ cx: h.x, cy: h.y, halfW: worldWidth / 2, halfH: worldHeight / 2 });
+    }
   }
 
   // ── Store subscriptions ───────────────────────────────────────────────────
@@ -698,10 +709,11 @@
   // キャッシュ: 静的レイヤーは毎フレーム再構築しない
   let cachedStaticLayers: ReturnType<typeof buildStaticLayers> = [];
   let cachedAgentLayers: ReturnType<typeof buildAgentLayers> = [];
+  let cachedViewportLayer: unknown[] = [];
 
   function flushLayers() {
     if (!deck) return;
-    deck.setProps({ layers: [...cachedStaticLayers, ...cachedAgentLayers] });
+    deck.setProps({ layers: [...cachedStaticLayers, ...cachedAgentLayers, ...cachedViewportLayer] });
   }
 
   // 静的レイヤー: ステップ切替・選択変更・設定変更時のみ再構築
@@ -730,12 +742,14 @@
 
   const unsubStatic = staticArgs.subscribe(
     ({ emap, selId, actions, cfg, perceivedIds, comms, hiddenChs }) => {
+      const displaySelId = suppressHighlight ? null : selId;
+      const displayPerceivedIds = suppressHighlight ? null : perceivedIds;
       cachedStaticLayers = buildStaticLayers(
         emap,
-        selId,
+        displaySelId,
         actions,
         cfg,
-        perceivedIds,
+        displayPerceivedIds,
         comms,
         hiddenChs,
       );
@@ -766,16 +780,48 @@
 
   const unsubAgents = agentArgs.subscribe(
     ({ emap, selId, actions, perceivedIds, displayMode }) => {
+      const displaySelId = suppressHighlight ? null : selId;
+      const displayPerceivedIds = suppressHighlight ? null : perceivedIds;
       cachedAgentLayers = buildAgentLayers(
         emap,
-        selId,
+        displaySelId,
         actions,
-        perceivedIds,
+        displayPerceivedIds,
         displayMode,
       );
       flushLayers();
     },
   );
+
+  //Tomi
+  const unsubViewportIndicator = detailViewport.subscribe((bounds) => {
+    if(alwaysFollow) return ;
+
+    if(!bounds) cachedViewportLayer = [];
+    else {
+      //詳細画面の範囲を囲む
+      const rectPath:[number, number][] = [
+        [bounds.cx - bounds.halfW, bounds.cy - bounds.halfH],// 左下
+        [bounds.cx + bounds.halfW, bounds.cy - bounds.halfH],// 右下
+        [bounds.cx + bounds.halfW, bounds.cy + bounds.halfH],// 右上
+        [bounds.cx - bounds.halfW, bounds.cy + bounds.halfH],// 左上
+        [bounds.cx - bounds.halfW, bounds.cy - bounds.halfH],// 左下
+      ];
+      cachedViewportLayer = [
+        new PathLayer({
+          id: "detail-Viewport-indicator",
+          data: [rectPath],
+          getPath: (d) => d,
+          getColor: [255, 255, 255, 255],//要検討色
+          getWidth: 2,
+          widthMinPixels: 2,
+          widthMaxPixels: 2,
+        })
+      ];
+    }
+
+    flushLayers();
+  });
 
   // 実世界エンティティが初めてロードされたときにビューポートをフィット
   const unsubFit = entities.subscribe((emap) => {
@@ -800,6 +846,7 @@
 
   // ── Deck.gl lifecycle ─────────────────────────────────────────────────────
 
+  //画面に出す時
   onMount(() => {
     const initialViewState: OrthographicViewState = {
       target: [0, 0, 0],
@@ -823,14 +870,25 @@
         if (typeof z === "number") currentZoom = z;
       },
     });
+
+    //Tomi
+    const initEmap = get(perceptionViewMode) ? get(perceivedEntities) : get(entities);
+    fitViewport(initEmap);
+    followAgent(initEmap, get(selectedId));
+    flushLayers();
   });
 
+  //画面から消える時
   onDestroy(() => {
     unsubStatic();
     unsubAgents();
     unsubFit();
     unsubFocus();
     deck?.finalize();
+    unsubViewportIndicator();
+    if(alwaysFollow){
+      detailViewport.set(null);
+    }
   });
 </script>
 

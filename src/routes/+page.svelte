@@ -8,6 +8,8 @@
   import SimMap from "$lib/components/SimMap.svelte";
   import TeamNamePanel from "$lib/components/TeamNamePanel.svelte";
   import TimelinePanel from "$lib/components/TimelinePanel.svelte";
+  import { selectedEntity } from "$lib/stores/simulation";
+  import { isAgent } from "$lib/rcrs/urns";
   import { t } from "$lib/i18n";
   import {
     downloadProgress,
@@ -18,6 +20,7 @@
     maxStep,
     parseProgress,
     seekToStep,
+    selectedId,
   } from "$lib/stores/simulation";
   import { onMount } from "svelte";
   import { get } from "svelte/store";
@@ -60,8 +63,19 @@
 </script>
 
 <div class="app" data-loaded={dataLoaded ? "true" : undefined}>
-  <SimMap />
-
+<!-- Tomi エージェント選択以外は一画面に -->
+  {#if $selectedId !== null && isAgent($selectedEntity.urn)}
+    <div style="display: flex; width: 100%; height: 100%;">
+      <div style="flex: 1; height: 100%; position: relative;">
+        <SimMap suppressHighlight={true} />
+      </div>
+      <div style="flex: 1; height: 100%; position: relative;">
+        <SimMap alwaysFollow={true} />
+      </div>
+    </div>
+  {:else}
+    <SimMap />
+  {/if}
   {#if !screenshotMode}
     <!-- Sliding timeline panel -->
     <div
