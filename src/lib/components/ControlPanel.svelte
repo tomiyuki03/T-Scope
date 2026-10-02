@@ -17,7 +17,6 @@
     loadFile,
     loading,
     loadUrl,
-    layerPanelOpen,
     maxStep,
     mode,
     seekToStep,
@@ -502,12 +501,6 @@
           title={$t("control.kernelConfig")}>⚙️</button
         >
       {/if}
-
-      <button
-        class = "btn follow"
-        class:active = {$layerPanelOpen}
-        onclick = {() => layerPanelOpen.update((v) => !v)} 
-      >表示設定</button>
     </div>
   {/if}
 
