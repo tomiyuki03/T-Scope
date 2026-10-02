@@ -1,7 +1,6 @@
 <script lang="ts">
   import type { SimEntity } from "$lib/rcrs/types";
   import { locale, setLocale, t } from "$lib/i18n";
-  import { EntityURN, isAgent, isCommandCenter } from "$lib/rcrs/urns";
   import {
     agentActions,
     animatedEntities,
@@ -13,18 +12,15 @@
     entities,
     errorMsg,
     agentDisplayMode,
-    followMode,
     getCommandsAtStep,
     kernelConfig,
     loadFile,
     loading,
     loadUrl,
+    layerPanelOpen,
     maxStep,
     mode,
-    perceptionViewMode,
-    pinnedAgentId,
     seekToStep,
-    selectedEntity,
   } from "$lib/stores/simulation";
   import { onMount } from "svelte";
   import { get } from "svelte/store";
@@ -506,25 +502,12 @@
           title={$t("control.kernelConfig")}>⚙️</button
         >
       {/if}
-      <button
-        class="btn follow"
-        class:active={$followMode}
-        onclick={() => followMode.update((v) => !v)}
-        title={$t("control.followTitle")}>{$t("control.follow")}</button
-      >
 
-      {#if $mode === "file"}
-        <button
-          class="btn follow"
-          class:active={$perceptionViewMode}
-          disabled={$pinnedAgentId === null &&
-            (!isAgent($selectedEntity?.urn ?? 0) ||
-              $selectedEntity?.urn === EntityURN.CIVILIAN) &&
-            !isCommandCenter($selectedEntity?.urn ?? 0)}
-          onclick={() => perceptionViewMode.update((v) => !v)}
-          title={$t("control.perceptionTitle")}>{$t("control.perception")}</button
-        >
-      {/if}
+      <button
+        class = "btn follow"
+        class:active = {$layerPanelOpen}
+        onclick = {() => layerPanelOpen.update((v) => !v)} 
+      >表示設定</button>
     </div>
   {/if}
 

@@ -18,7 +18,6 @@
     detailViewport,
     entities,
     focusPoint,
-    followMode,
     hiddenChannels,
     inspectedId,
     kernelConfig,
@@ -682,7 +681,8 @@
 
   function followAgent(emap: Map<number, SimEntity>, selId: number | null) {
     //Tomi 
-    if (!(alwaysFollow || $followMode) || selId === null || !deck) return;
+    //if (!(alwaysFollow || $followMode) || selId === null || !deck) return;
+    if(!alwaysFollow || selId === null || !deck) return;
     const e = emap.get(selId);
     if (!e || !isAgent(e.urn)) return;
     const h = e as HumanEntity;
@@ -730,7 +730,9 @@
       hiddenChannels,
     ],
     ([$e, $pe, $pvm, $sel, $aa, $kc, $avi, $arc, $hc]) => ({
-      emap: $pvm ? $pe : $e,
+      //Tomi
+      //emap: $pvm ? $pe : $e,
+      emap: (!suppressHighlight && $pvm) ? $pe : $e,
       selId: $sel,
       actions: $aa,
       cfg: $kc,
@@ -743,7 +745,7 @@
   const unsubStatic = staticArgs.subscribe(
     ({ emap, selId, actions, cfg, perceivedIds, comms, hiddenChs }) => {
       const displaySelId = suppressHighlight ? null : selId;
-      const displayPerceivedIds = suppressHighlight ? null : perceivedIds;
+      const displayPerceivedIds = (suppressHighlight || get(perceptionViewMode)) ? null : perceivedIds;
       cachedStaticLayers = buildStaticLayers(
         emap,
         displaySelId,
@@ -770,7 +772,9 @@
       agentDisplayMode,
     ],
     ([$ae, $sel, $aa, $avi, $pvm, $pe, $adm]) => ({
-      emap: $pvm ? $pe : $ae,
+      //Tomi
+      //emap: $pvm ? $pe : $ae,
+      emap: (!suppressHighlight && $pvm) ? $pe : $ae,
       selId: $sel,
       actions: $aa,
       perceivedIds: $avi,
@@ -781,7 +785,7 @@
   const unsubAgents = agentArgs.subscribe(
     ({ emap, selId, actions, perceivedIds, displayMode }) => {
       const displaySelId = suppressHighlight ? null : selId;
-      const displayPerceivedIds = suppressHighlight ? null : perceivedIds;
+      const displayPerceivedIds = (suppressHighlight || get(perceptionViewMode)) ? null : perceivedIds;
       cachedAgentLayers = buildAgentLayers(
         emap,
         displaySelId,
@@ -825,7 +829,9 @@
 
   // 実世界エンティティが初めてロードされたときにビューポートをフィット
   const unsubFit = entities.subscribe((emap) => {
-    if (!deck || $perceptionViewMode) return;
+    //Tomi
+    //if (!deck || $perceptionViewMode) return;
+    if (!deck || (!suppressHighlight && $perceptionViewMode)) return;
     if (prevSize === 0 && emap.size > 0) fitViewport(emap);
     prevSize = emap.size;
   });
@@ -871,8 +877,10 @@
       },
     });
 
-    //Tomi
-    const initEmap = get(perceptionViewMode) ? get(perceivedEntities) : get(entities);
+    //Tomi初期化処理
+    //const initEmap = get(perceptionViewMode) ? get(perceivedEntities) : get(entities);
+    const initEmap = (!suppressHighlight && get(perceptionViewMode)) ?
+    get(perceivedEntities) : get(entities);
     fitViewport(initEmap);
     followAgent(initEmap, get(selectedId));
     flushLayers();

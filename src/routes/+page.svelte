@@ -9,7 +9,7 @@
   import TeamNamePanel from "$lib/components/TeamNamePanel.svelte";
   import TimelinePanel from "$lib/components/TimelinePanel.svelte";
   import { selectedEntity } from "$lib/stores/simulation";
-  import { isAgent } from "$lib/rcrs/urns";
+  import { EntityURN, isAgent } from "$lib/rcrs/urns";
   import { t } from "$lib/i18n";
   import {
     downloadProgress,
@@ -19,6 +19,7 @@
     loadUrl,
     maxStep,
     parseProgress,
+    perceptionViewMode,
     seekToStep,
     selectedId,
   } from "$lib/stores/simulation";
