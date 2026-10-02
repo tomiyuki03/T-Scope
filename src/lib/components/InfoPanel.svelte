@@ -25,6 +25,7 @@
     focusPoint,
     inspectedEntity,
     inspectedId,
+    perceptionViewMode,
     pinnedAgentId,
     selectedEntity,
     selectedId,
@@ -494,6 +495,14 @@
               >📌</button
             >
           {/if}
+          {#if isAgent(e.urn) && e.urn !== EntityURN.CIVILIAN}
+            <button
+              class = "pin-btn"
+              class:active = {$perceptionViewMode}
+              onclick = {() => perceptionViewMode.update((v) => !v)}
+              title="知覚範囲">👁
+            </button>
+          {/if}
           <button
             class="close-btn"
             onclick={() => {
@@ -736,6 +745,36 @@
     gap: 2px;
     max-height: 200px;
     overflow-y: auto;
+  }
+
+  <!--Tomi-->
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 26px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    line-height: 1;
+    padding: 4px 9px;
+    white-space: nowrap;
+  }
+
+  .btn.follow {
+    border: 1px solid rgba(0, 200, 255, 0.6);
+    color: #00c8ff;
+    background: rgba(0, 180, 255, 0.12);
+  }
+  .btn.follow:hover {
+    border-color: rgba(0, 200, 255, 0.4);
+    color: #a8c8d8;
+  }
+  .btn.follow.active {
+    border: 1px solid rgba(255, 200, 60, 0.5);
+    color: #ffc840;
+    background: rgba(255, 200, 60, 0.1);
   }
 
   .ch-btn {

@@ -46,7 +46,6 @@ export const maxStep = writable(0);
 export const selectedId = writable<number | null>(null);
 export const kernelConfig = writable<Record<string, string>>({});
 export const focusPoint = writable<{ x: number; y: number } | null>(null);
-export const followMode = writable(false);
 export const agentActions = writable<Map<number, AgentAction>>(new Map());
 export const currentSpeakStats = writable<Map<number, { count: number; bytes: number }>>(new Map());
 export const hiddenChannels = writable<Set<number>>(new Set());
