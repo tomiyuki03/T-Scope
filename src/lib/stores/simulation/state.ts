@@ -49,6 +49,12 @@ export const focusPoint = writable<{ x: number; y: number } | null>(null);
 export const agentActions = writable<Map<number, AgentAction>>(new Map());
 export const currentSpeakStats = writable<Map<number, { count: number; bytes: number }>>(new Map());
 export const hiddenChannels = writable<Set<number>>(new Set());
+export type LayerCategory = |"civilian" | "ambulance" | "fire" | "police" | "building" | "blockade" | "refuge" | "path" | "rescueTargets";
+
+export const hiddenLayers = writable<Set<LayerCategory>>(new Set());
+export const showLegend = writable(false);
+//export const layerPanelOpen = writable(false);
+
 export const agentCommStats = writable<Map<number, { speak: number; bytes: number }>>(new Map());
 export const agentSubscriptions = writable<Map<number, number[]>>(new Map());
 export const initialBlockadeCost = writable(0);

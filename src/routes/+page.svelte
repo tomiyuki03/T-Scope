@@ -4,6 +4,7 @@
   import ControlPanel from "$lib/components/ControlPanel.svelte";
   import IdleAgentsPanel from "$lib/components/IdleAgentsPanel.svelte";
   import InfoPanel from "$lib/components/InfoPanel.svelte";
+  import LayerFilterPanel from "$lib/components/LayerFilterPanel.svelte";
   import ScorePanel from "$lib/components/ScorePanel.svelte";
   import SimMap from "$lib/components/SimMap.svelte";
   import TeamNamePanel from "$lib/components/TeamNamePanel.svelte";
@@ -33,7 +34,8 @@
     return `${b} B`;
   }
 
-  let timelineOpen = $state(false);
+  //let timelineOpen = $state(false);
+  let activeDrawer: "timeline" | "layers" | null = $state(null);
   let screenshotMode = $state(false);
   let dataLoaded = $state(false);
 
@@ -60,11 +62,11 @@
 
   const TIMELINE_WIDTH = 300;
   const PANEL_GAP = 12;
-  const leftOffset = $derived(timelineOpen ? TIMELINE_WIDTH + PANEL_GAP : 0);
+  const leftOffset = $derived(activeDrawer !== null ? TIMELINE_WIDTH + PANEL_GAP : 0);
 </script>
 
 <div class="app" data-loaded={dataLoaded ? "true" : undefined}>
-<!-- Tomi エージェント選択以外は一画面に -->
+<!-- Tomi エージェント選択時以外は一画面に -->
   {#if $selectedId !== null && isAgent($selectedEntity.urn)}
     <div style="display: flex; width: 100%; height: 100%;">
       <div style="flex: 1; height: 100%; position: relative;">
@@ -77,24 +79,38 @@
   {:else}
     <SimMap />
   {/if}
+
+  <!-- Tomi タイムラインと表示設定 -->
   {#if !screenshotMode}
     <!-- Sliding timeline panel -->
     <div
       class="timeline-drawer"
-      class:open={timelineOpen}
+      class:open={activeDrawer !== null}
     >
+    {#if activeDrawer === "timeline"}
       <TimelinePanel />
+    {:else if activeDrawer === "layers"}
+      <LayerFilterPanel />
+    {/if}
     </div>
 
     <!-- Toggle tab -->
     <button
       class="timeline-toggle"
-      class:open={timelineOpen}
-      style="left:{timelineOpen ? TIMELINE_WIDTH : 0}px"
-      onclick={() => (timelineOpen = !timelineOpen)}
-      title={timelineOpen ? $t("timeline.close") : $t("timeline.open")}
+      class:open={activeDrawer === "timeline"}
+      style="left:{activeDrawer !==null ? TIMELINE_WIDTH : 0}px; top: 50%;"
+      onclick={() => (activeDrawer = activeDrawer === "timeline" ? null :"timeline")}
     >
-      {timelineOpen ? "◂" : "▸"}
+      タイムライン
+    </button>
+
+    <button
+      class="timeline-toggle"
+      class:open={activeDrawer === "layers"}
+      style="left:{activeDrawer !==null ? TIMELINE_WIDTH : 0}px; top: calc(50% + 80px);"
+      onclick={() => (activeDrawer = activeDrawer === "layers" ? null :"layers")}
+    >
+      表示設定
     </button>
 
     <div class="left-col" style="left:{leftOffset + PANEL_GAP}px">
@@ -180,28 +196,29 @@
 
   .timeline-toggle {
     position: absolute;
-    top: 50%;
     transform: translateY(-50%);
     z-index: 21;
-    width: 20px;
-    height: 52px;
+    min-width: 20px;
+    height: auto;
+    min-height: 32px;
     background: rgba(0, 180, 255, 0.18);
     border: 1px solid rgba(0, 200, 255, 0.55);
     border-left: none;
     border-radius: 0 6px 6px 0;
     color: #00e0ff;
     font-size: 12px;
-    line-height: 1;
+    line-height: 1.2;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0;
+    padding: 6px 10px;
     transition:
       left 0.25s ease,
       background 0.12s,
       box-shadow 0.12s;
     box-shadow: 2px 0 10px rgba(0, 180, 255, 0.3);
+    writing-mode: vertical-rl;
   }
 
   .timeline-toggle:hover {

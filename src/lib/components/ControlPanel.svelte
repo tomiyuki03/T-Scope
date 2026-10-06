@@ -17,7 +17,7 @@
     loadFile,
     loading,
     loadUrl,
-    layerPanelOpen,
+    //layerPanelOpen,
     maxStep,
     mode,
     seekToStep,
@@ -503,11 +503,12 @@
         >
       {/if}
 
-      <button
+      <!--<button
         class = "btn follow"
         class:active = {$layerPanelOpen}
         onclick = {() => layerPanelOpen.update((v) => !v)} 
-      >表示設定</button>
+      >表示設定</button>-->
+
     </div>
   {/if}
 
