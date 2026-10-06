@@ -747,7 +747,7 @@
     overflow-y: auto;
   }
 
-  <!--Tomi-->
+  /*Tomi*/
   .btn {
     display: inline-flex;
     align-items: center;

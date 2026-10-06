@@ -19,6 +19,7 @@
     entities,
     focusPoint,
     hiddenChannels,
+    hiddenLayers,
     inspectedId,
     kernelConfig,
     perceivedEntities,
@@ -37,6 +38,7 @@
   } from "@deck.gl/layers";
   import { onDestroy, onMount } from "svelte";
   import { derived, get } from "svelte/store";
+  import type {LayerCategory} from "$lib/stores/simulation";
 
   function selectEntity(id: number | null) {
     if (get(pinnedAgentId) !== null) inspectedId.set(id);
@@ -175,6 +177,32 @@
   // 静的レイヤー（道路・建物・瓦礫・通信・軌跡）: ステップ切替時のみ再構築
   // 動的レイヤー（エージェントドット）: 毎フレーム再構築（補間位置）
 
+  // Tomi── Layer filter panel ───────────────────────────────────────────────────
+  function isLayerHidden(urn: number, hidden: Set<LayerCategory>): boolean {
+    switch (urn) {
+      case EntityURN.CIVILIAN:
+        return hidden.has("civilian");
+      case EntityURN.AMBULANCE_TEAM:
+        return hidden.has("ambulance");
+      case EntityURN.FIRE_BRIGADE:
+        return hidden.has("fire");
+      case EntityURN.POLICE_FORCE:
+        return hidden.has("police");
+      case EntityURN.REFUGE:
+        return hidden.has("refuge");
+      case EntityURN.BLOCKADE:
+        return hidden.has("blockade");
+      case EntityURN.BUILDING:
+      case EntityURN.FIRE_STATION:
+      case EntityURN.AMBULANCE_CENTRE:
+      case EntityURN.POLICE_OFFICE:
+      case EntityURN.GAS_STATION:
+        return hidden.has("building");
+      default:
+        return false;
+    }
+  }
+
   function buildStaticLayers(
     emap: Map<number, SimEntity>,
     selId: number | null,
@@ -183,6 +211,7 @@
     perceivedIds: Set<number> | null,
     comms: CommMessage[] | null,
     hiddenChs: Set<number>,
+    hidden: Set<LayerCategory>,
   ) {
     const filteredComms =
       hiddenChs.size > 0 && comms
@@ -195,6 +224,7 @@
     const agents: HumanEntity[] = [];
 
     for (const e of emap.values()) {
+      if (isLayerHidden(e.urn, hidden)) continue;
       if (e.urn === EntityURN.ROAD || e.urn === EntityURN.HYDRANT)
         roads.push(e as RoadEntity);
       else if (isBuilding(e.urn)) buildings.push(e as BuildingEntity);
@@ -260,7 +290,7 @@
       | PathLayer<unknown>
       | ScatterplotLayer<unknown>
     )[] => {
-      if (!selId) return [];
+      if (hidden.has("path") || !selId) return [];
       const sel = emap.get(selId) as HumanEntity | undefined;
       if (!sel || !isAgent(sel.urn)) return [];
       const action = actions.get(selId);
@@ -445,7 +475,7 @@
 
       new PathLayer({
         id: "agent-trails",
-        data: visibleAgents.filter((a) => a.positionHistory.length >= 2),
+        data: hidden.has("path")? [] :visibleAgents.filter((a) => a.positionHistory.length >= 2),
         getPath: (d: HumanEntity) => {
           const pts: [number, number][] = [];
           for (let i = 0; i + 1 < d.positionHistory.length; i += 2)
@@ -476,7 +506,7 @@
 
       new PolygonLayer({
         id: "clear-area",
-        data: clearAreaPolygons,
+        data: hidden.has("rescueTargets") ? [] : clearAreaPolygons,
         getPolygon: (d: [number, number][]) => d,
         getFillColor: [255, 80, 200, 30],
         getLineColor: [255, 80, 200, 220],
@@ -495,6 +525,7 @@
     selId: number | null,
     actions: Map<number, AgentAction>,
     perceivedIds: Set<number> | null,
+    hidden: Set<LayerCategory>,
     displayMode: "circle" | "emoji" = "emoji",
   ) {
     const agents: HumanEntity[] = [];
@@ -502,7 +533,7 @@
     const carriedIds = new Set<number>();
 
     for (const e of emap.values()) {
-      if (!isAgent(e.urn)) continue;
+      if ((!isAgent(e.urn)) || isLayerHidden(e.urn, hidden)) continue;
       const h = e as HumanEntity;
       if (h.urn === EntityURN.CIVILIAN) {
         const carrier = emap.get(h.position);
@@ -551,7 +582,7 @@
         emojiLayer("civilians-emoji", civilians),
         new ScatterplotLayer({
           id: "rescuing-fire-brigades-highlight",
-          data: rescuingFireBrigades,
+          data: hidden.has("rescueTargets") ? [] : rescuingFireBrigades,
           getPosition: (d: HumanEntity) => [d.x, d.y],
           getFillColor: (d: HumanEntity) => {
             const dim =
@@ -573,7 +604,7 @@
         emojiLayer("rescue-agents-emoji", rescueAgents),
         new IconLayer({
           id: "passengers-emoji",
-          data: visibleAgents.filter((a) => carrierMap.has(a.id)),
+          data: hidden.has("rescueTargets") ? [] :visibleAgents.filter((a) => carrierMap.has(a.id)),
           getPosition: (d: HumanEntity) => [d.x, d.y],
           getIcon: () => "🧑",
           getSize: (d: HumanEntity) => (d.id === selId ? 18 : 13),
@@ -621,7 +652,7 @@
       circleLayer("rescue-agents-circle", rescueAgents),
       new ScatterplotLayer({
         id: "passengers-circle",
-        data: visibleAgents.filter((a) => carrierMap.has(a.id)),
+        data: hidden.has("rescueTargets") ? [] : visibleAgents.filter((a) => carrierMap.has(a.id)),
         getPosition: (d: HumanEntity) => [d.x, d.y],
         getFillColor: [60, 200, 80, 220],
         getLineColor: [255, 255, 255, 180],
@@ -728,8 +759,9 @@
       agentVisibleIds,
       agentReceivedComms,
       hiddenChannels,
+      hiddenLayers,
     ],
-    ([$e, $pe, $pvm, $sel, $aa, $kc, $avi, $arc, $hc]) => ({
+    ([$e, $pe, $pvm, $sel, $aa, $kc, $avi, $arc, $hc, $hl]) => ({
       //Tomi
       //emap: $pvm ? $pe : $e,
       emap: (!suppressHighlight && $pvm) ? $pe : $e,
@@ -739,13 +771,14 @@
       perceivedIds: $avi,
       comms: $arc,
       hiddenChs: $hc,
+      hidden: $hl,
     }),
   );
 
   const unsubStatic = staticArgs.subscribe(
-    ({ emap, selId, actions, cfg, perceivedIds, comms, hiddenChs }) => {
+    ({ emap, selId, actions, cfg, perceivedIds, comms, hiddenChs, hidden}) => {
       const displaySelId = suppressHighlight ? null : selId;
-      const displayPerceivedIds = (suppressHighlight || get(perceptionViewMode)) ? null : perceivedIds;
+      const displayPerceivedIds = (suppressHighlight || !get(perceptionViewMode)) ? null : perceivedIds;
       cachedStaticLayers = buildStaticLayers(
         emap,
         displaySelId,
@@ -754,6 +787,7 @@
         displayPerceivedIds,
         comms,
         hiddenChs,
+        hidden,
       );
       flushLayers();
       followAgent(emap, selId);
@@ -770,8 +804,9 @@
       perceptionViewMode,
       perceivedEntities,
       agentDisplayMode,
+      hiddenLayers,
     ],
-    ([$ae, $sel, $aa, $avi, $pvm, $pe, $adm]) => ({
+    ([$ae, $sel, $aa, $avi, $pvm, $pe, $adm, $hl]) => ({
       //Tomi
       //emap: $pvm ? $pe : $ae,
       emap: (!suppressHighlight && $pvm) ? $pe : $ae,
@@ -779,18 +814,20 @@
       actions: $aa,
       perceivedIds: $avi,
       displayMode: $adm,
+      hidden: $hl,
     }),
   );
 
   const unsubAgents = agentArgs.subscribe(
-    ({ emap, selId, actions, perceivedIds, displayMode }) => {
+    ({ emap, selId, actions, perceivedIds, displayMode, hidden }) => {
       const displaySelId = suppressHighlight ? null : selId;
-      const displayPerceivedIds = (suppressHighlight || get(perceptionViewMode)) ? null : perceivedIds;
+      const displayPerceivedIds = (suppressHighlight || !get(perceptionViewMode)) ? null : perceivedIds;
       cachedAgentLayers = buildAgentLayers(
         emap,
         displaySelId,
         actions,
         displayPerceivedIds,
+        hidden, 
         displayMode,
       );
       flushLayers();
