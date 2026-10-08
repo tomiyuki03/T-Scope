@@ -54,11 +54,15 @@ export type LayerCategory = |"civilian" | "ambulance" | "fire" | "police" | "bui
 export const hiddenLayers = writable<Set<LayerCategory>>(new Set());
 export const showLegend = writable(false);
 //export const layerPanelOpen = writable(false);
+export const multiLogMode = writable(false);
+export const multiLogSync = writable(true);
 
 export const agentCommStats = writable<Map<number, { speak: number; bytes: number }>>(new Map());
 export const agentSubscriptions = writable<Map<number, number[]>>(new Map());
 export const initialBlockadeCost = writable(0);
 export const detailViewport = writable<{ cx: number; cy: number; halfW: number; halfH: number } | null>(null);
+export const mapViewport = writable<{ cx: number; cy: number; zoom: number } | null>(null);
+export const remoteViewportCommand = writable<{ cx: number; cy: number; zoom: number } | null>(null);
 
 export const selectedEntity = derived(
   [entities, selectedId],

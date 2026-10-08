@@ -20,6 +20,8 @@
     //layerPanelOpen,
     maxStep,
     mode,
+    multiLogMode,
+    multiLogSync,
     seekToStep,
   } from "$lib/stores/simulation";
   import { onMount } from "svelte";
@@ -535,8 +537,21 @@
     </a>
     
     <!-- 複数画面追加　-->
-    <a href="/multi">複数画面</a>
-    
+    {#if !_q.has("embed")}
+    <button 
+      class = "btn follow"
+      class:active={$multiLogMode}
+      onclick={() => multiLogMode.update((v) => !v)}
+      >複数ログ</button>
+    {/if}
+    {#if _q.has("embed") && _q.has("primary")}
+    <button
+      class = "btn follow"
+      class:active={$multiLogSync}
+      onclick={() => window.parent.postMessage({ type: "tscope:toggleSync" }, "*")}
+      >{$multiLogSync ? "同期ON" : "同期OFF"}</button>
+    {/if}
+
     <div class="lang-switch" aria-label={$t("common.language")}>
       <button
         class:active={$locale === "en"}

@@ -13,14 +13,19 @@
   import { EntityURN, isAgent } from "$lib/rcrs/urns";
   import { t } from "$lib/i18n";
   import {
+    currentStep,
     downloadProgress,
     downloadSize,
     extractProgress,
     loading,
     loadUrl,
+    mapViewport,
     maxStep,
+    multiLogMode,
+    multiLogSync,
     parseProgress,
     perceptionViewMode,
+    remoteViewportCommand,
     seekToStep,
     selectedId,
   } from "$lib/stores/simulation";
@@ -38,12 +43,18 @@
   let activeDrawer: "timeline" | "layers" | null = $state(null);
   let screenshotMode = $state(false);
   let dataLoaded = $state(false);
+  let receivingSync = false;
+  let receivingViewportSync = false;
+  let iframe1: HTMLIFrameElement ;
+  let iframe2: HTMLIFrameElement ;
 
   onMount(async () => {
     const params = new URLSearchParams(window.location.search);
     screenshotMode = params.has("screenshot");
     const autoUrl = params.get("autoload");
     const autoStep = params.get("step");
+    const isEmbedded = new URLSearchParams(window.location.search).has("embed");
+
     if (autoUrl) {
       const result = await loadUrl(autoUrl);
       if (result === "ok" && autoStep !== null) {
@@ -55,9 +66,65 @@
         }),
       );
     }
+
     // CLI スナップショット用
     (window as unknown as Record<string, unknown>).__simscope_seekTo = (step: number) => seekToStep(step);
     (window as unknown as Record<string, unknown>).__simscope_maxStep = () => get(maxStep);
+
+    // 親フレーム側
+    window.addEventListener("message", (event) => {
+      if (event.data?.type === "tscope:toggleSync"){
+        multiLogSync.update((v) => !v);
+        const newValue = get(multiLogSync);
+        iframe1?.contentWindow?.postMessage({ type: "tscope:setSync", sync: newValue }, "*");
+        iframe2?.contentWindow?.postMessage({ type: "tscope:setSync", sync: newValue }, "*");
+      }
+
+      if (event.data?.type === "tscope:viewport" && get(multiLogSync)) {
+        if (event.source === iframe1?.contentWindow) {
+          iframe2?.contentWindow?.postMessage({ type: "tscope:setViewport", cx: event.data.cx, cy: event.data.cy, zoom: event.data.zoom }, "*");
+        } else if (event.source === iframe2?.contentWindow) {
+          iframe1?.contentWindow?.postMessage({ type: "tscope:setViewport", cx: event.data.cx, cy: event.data.cy, zoom: event.data.zoom }, "*");
+        }
+      }
+      
+      if (event.data?.type !== "tscope:step") return;
+      if (!get(multiLogSync)) return;
+      if (event.source === iframe1?.contentWindow){
+        iframe2?.contentWindow?.postMessage({ type: "tscope:setStep", step: event.data.step }, "*");
+      } else if (event.source === iframe2?.contentWindow){
+        iframe1?.contentWindow?.postMessage({ type: "tscope:setStep", step: event.data.step }, "*");
+      }
+    });
+
+    if (!isEmbedded) return;
+
+    //子フレーム側
+    currentStep.subscribe((step) => {
+      if (receivingSync) return;
+      window.parent.postMessage({ type: "tscope:step", step }, "*");
+    });
+
+    mapViewport.subscribe((vp)=> {
+      if (!vp || receivingViewportSync) return;
+      window.parent.postMessage({ type: "tscope:viewport", cx: vp.cx, cy: vp.cy, zoom: vp.zoom }, "*");
+    });
+
+    window.addEventListener("message", (event) => {
+      if (event.data?.type === "tscope:setStep") {
+        receivingSync = true;
+        seekToStep(event.data.step);
+        receivingSync = false;
+      }
+      else if (event.data?.type === "tscope:setSync") {
+        multiLogSync.set(event.data.sync);
+      }
+      else if (event.data?.type === "tscope:setViewport") {
+        receivingViewportSync = true;
+        remoteViewportCommand.set({ cx: event.data.cx, cy: event.data.cy, zoom: event.data.zoom });
+        receivingViewportSync = false;
+      }
+    });
   });
 
   const TIMELINE_WIDTH = 300;
@@ -66,103 +133,111 @@
 </script>
 
 <div class="app" data-loaded={dataLoaded ? "true" : undefined}>
-<!-- Tomi エージェント選択時以外は一画面に -->
-  {#if $selectedId !== null && isAgent($selectedEntity.urn)}
-    <div style="display: flex; width: 100%; height: 100%;">
-      <div style="flex: 1; height: 100%; position: relative;">
-        <SimMap suppressHighlight={true} />
+  {#if !$multiLogMode}
+  <!-- Tomi エージェント選択時以外は一画面に -->
+    {#if $selectedId !== null && isAgent($selectedEntity.urn)}
+      <div style="display: flex; width: 100%; height: 100%;">
+        <div style="flex: 1; height: 100%; position: relative;">
+          <SimMap suppressHighlight={true} />
+        </div>
+        <div style="flex: 1; height: 100%; position: relative;">
+          <SimMap alwaysFollow={true} />
+        </div>
       </div>
-      <div style="flex: 1; height: 100%; position: relative;">
-        <SimMap alwaysFollow={true} />
-      </div>
-    </div>
-  {:else}
-    <SimMap />
-  {/if}
-
-  <!-- Tomi タイムラインと表示設定 -->
-  {#if !screenshotMode}
-    <!-- Sliding timeline panel -->
-    <div
-      class="timeline-drawer"
-      class:open={activeDrawer !== null}
-    >
-    {#if activeDrawer === "timeline"}
-      <TimelinePanel />
-    {:else if activeDrawer === "layers"}
-      <LayerFilterPanel />
+    {:else}
+      <SimMap />
     {/if}
-    </div>
 
-    <!-- Toggle tab -->
-    <button
-      class="timeline-toggle"
-      class:open={activeDrawer === "timeline"}
-      style="left:{activeDrawer !==null ? TIMELINE_WIDTH : 0}px; top: 50%;"
-      onclick={() => (activeDrawer = activeDrawer === "timeline" ? null :"timeline")}
-    >
-      タイムライン
-    </button>
+    <!-- Tomi タイムラインと表示設定 -->
+    {#if !screenshotMode}
+      <!-- Sliding timeline panel -->
+      <div
+        class="timeline-drawer"
+        class:open={activeDrawer !== null}
+      >
+      {#if activeDrawer === "timeline"}
+        <TimelinePanel />
+      {:else if activeDrawer === "layers"}
+        <LayerFilterPanel />
+      {/if}
+      </div>
 
-    <button
-      class="timeline-toggle"
-      class:open={activeDrawer === "layers"}
-      style="left:{activeDrawer !==null ? TIMELINE_WIDTH : 0}px; top: calc(50% + 80px);"
-      onclick={() => (activeDrawer = activeDrawer === "layers" ? null :"layers")}
-    >
-      表示設定
-    </button>
+      <!-- Toggle tab -->
+      <button
+        class="timeline-toggle"
+        class:open={activeDrawer === "timeline"}
+        style="left:{activeDrawer !==null ? TIMELINE_WIDTH : 0}px; top: 50%;"
+        onclick={() => (activeDrawer = activeDrawer === "timeline" ? null :"timeline")}
+      >
+        タイムライン
+      </button>
 
-    <div class="left-col" style="left:{leftOffset + PANEL_GAP}px">
-      <ControlPanel />
-      <TeamNamePanel />
-      <ScorePanel />
-      <ChannelFilterPanel />
-    </div>
-    <IdleAgentsPanel leftOffset={leftOffset + PANEL_GAP} />
-    <InfoPanel />
-    <CivilianStatusPanel />
-  {/if}
+      <button
+        class="timeline-toggle"
+        class:open={activeDrawer === "layers"}
+        style="left:{activeDrawer !==null ? TIMELINE_WIDTH : 0}px; top: calc(50% + 80px);"
+        onclick={() => (activeDrawer = activeDrawer === "layers" ? null :"layers")}
+      >
+        表示設定
+      </button>
 
-  {#if $loading}
-    <div class="loading-overlay">
-      <div class="loading-box">
-        <div class="spinner"></div>
-        {#if $downloadProgress !== null}
-          <div class="progress-wrap">
-            {#if $downloadProgress < 0}
-              <div class="progress-bar indeterminate"></div>
-            {:else}
+      <div class="left-col" style="left:{leftOffset + PANEL_GAP}px">
+        <ControlPanel />
+        <TeamNamePanel />
+        <ScorePanel />
+        <ChannelFilterPanel />
+      </div>
+      <IdleAgentsPanel leftOffset={leftOffset + PANEL_GAP} />
+      <InfoPanel />
+      <CivilianStatusPanel />
+    {/if}
+
+    {#if $loading}
+      <div class="loading-overlay">
+        <div class="loading-box">
+          <div class="spinner"></div>
+          {#if $downloadProgress !== null}
+            <div class="progress-wrap">
+              {#if $downloadProgress < 0}
+                <div class="progress-bar indeterminate"></div>
+              {:else}
+                <div
+                  class="progress-bar"
+                  style="width:{$downloadProgress * 100}%"
+                ></div>
+              {/if}
+            </div>
+            <span>
+              {#if $downloadProgress < 0}
+                {$t("loading.downloading")}{$downloadSize !== null ? ` (${fmtBytes($downloadSize)})` : ""}
+              {:else}
+                {$t("loading.downloading")} {Math.round($downloadProgress * 100)}%{$downloadSize !== null ? ` / ${fmtBytes($downloadSize)}` : ""}
+              {/if}
+            </span>
+          {:else if $extractProgress !== null}
+            <div class="progress-wrap">
+              <div class="progress-bar" style="width:{$extractProgress}%"></div>
+            </div>
+            <span>{$t("loading.extracting")} {$extractProgress}%</span>
+          {:else if $parseProgress !== null}
+            <div class="progress-wrap">
               <div
                 class="progress-bar"
-                style="width:{$downloadProgress * 100}%"
+                style="width:{$parseProgress * 100}%"
               ></div>
-            {/if}
-          </div>
-          <span>
-            {#if $downloadProgress < 0}
-              {$t("loading.downloading")}{$downloadSize !== null ? ` (${fmtBytes($downloadSize)})` : ""}
-            {:else}
-              {$t("loading.downloading")} {Math.round($downloadProgress * 100)}%{$downloadSize !== null ? ` / ${fmtBytes($downloadSize)}` : ""}
-            {/if}
-          </span>
-        {:else if $extractProgress !== null}
-          <div class="progress-wrap">
-            <div class="progress-bar" style="width:{$extractProgress}%"></div>
-          </div>
-          <span>{$t("loading.extracting")} {$extractProgress}%</span>
-        {:else if $parseProgress !== null}
-          <div class="progress-wrap">
-            <div
-              class="progress-bar"
-              style="width:{$parseProgress * 100}%"
-            ></div>
-          </div>
-          <span>{$t("loading.parsing")} {Math.round($parseProgress * 100)}%</span>
-        {:else}
-          <span>{$t("loading.loading")}</span>
-        {/if}
+            </div>
+            <span>{$t("loading.parsing")} {Math.round($parseProgress * 100)}%</span>
+          {:else}
+            <span>{$t("loading.loading")}</span>
+          {/if}
+        </div>
       </div>
+    {/if}
+  {:else}
+  <!-- 複数ログモード -->
+    <div style="display: flex; width: 100%; height: 100%;">
+      <iframe bind:this={iframe1} src="/?embed=1&primary=1" style="flex: 1; height: 100%; border: none;" title="log1"></iframe>
+      <iframe bind:this={iframe2} src="/?embed=1" style="flex: 1; height: 100%; border: none;" title="log2"></iframe>
     </div>
   {/if}
 </div>

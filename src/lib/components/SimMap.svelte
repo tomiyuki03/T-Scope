@@ -22,6 +22,8 @@
     hiddenLayers,
     inspectedId,
     kernelConfig,
+    mapViewport,
+    remoteViewportCommand,
     perceivedEntities,
     perceptionViewMode,
     pinnedAgentId,
@@ -887,6 +889,18 @@
     focusPoint.set(null);
   });
 
+  const unsubRemoteViewport = remoteViewportCommand.subscribe((cmd) => {
+    if (!cmd || alwaysFollow || !deck) return;
+    deck.setProps({
+      initialViewState: {
+        target: [cmd.cx, cmd.cy, 0] as [number, number, number],
+        zoom: cmd.zoom,
+        minZoom: cmd.zoom -5,
+        maxZoom: cmd.zoom + 10,
+      },
+    });
+  });
+
   // ── Deck.gl lifecycle ─────────────────────────────────────────────────────
 
   //画面に出す時
@@ -909,8 +923,14 @@
         }
       },
       onViewStateChange: ({ viewState }) => {
-        const z = (viewState as OrthographicViewState).zoom;
-        if (typeof z === "number") currentZoom = z;
+        const vs = viewState as OrthographicViewState;
+        const z = vs.zoom;
+        if (typeof z !== "number") return;
+        currentZoom = z;
+        if (!alwaysFollow && Array.isArray(vs.target)) {
+          const [cx, cy] = vs.target as [number, number];
+          mapViewport.set({cx, cy, zoom: z});
+        }
       },
     });
 
@@ -929,6 +949,7 @@
     unsubAgents();
     unsubFit();
     unsubFocus();
+    unsubRemoteViewport();
     deck?.finalize();
     unsubViewportIndicator();
     if(alwaysFollow){
