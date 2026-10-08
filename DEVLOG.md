@@ -171,6 +171,31 @@ T-Scope（RoboCup Rescue Simulation ビューワ、[shima004/SimScope](https://g
 
 ---
 
+## 6. タイムライン選択時に全体画面が動かないようにする修正
+
+**ブランチ**: `fix/timeline-focus-detail-only`
+
+### 問題
+2画面表示中にタイムラインパネルでタスク（イベント）を選ぶと、詳細画面だけでなく全体画面のカメラも選んだ場面へ移動してしまい、全体を見渡せなくなっていた。
+
+### 原因
+`focusPoint`は全`SimMap`インスタンスが購読している共有ストア。`TimelinePanel`が`focusPoint.set(...)`すると、2画面の両方が同じ処理（`deck.setProps`でカメラ移動）を実行していた。
+
+### やったこと
+- `SimMap.svelte`の`unsubFocus`に`if (suppressHighlight) return;`を追加し、2画面モードの全体画面は`focusPoint`を無視するようにした
+- 詳細画面は元々`followAgent`が選択エージェントへ追従し続けるため、追加の対応は不要
+
+### 設計のポイント
+- `!alwaysFollow`ではなく`suppressHighlight`で判定した理由：1画面モードの`<SimMap />`も`alwaysFollow`は`false`のため、`!alwaysFollow`で弾くと1画面でのジャンプまで効かなくなる。2画面の全体画面だけを指せるのは`suppressHighlight`
+
+### 影響範囲
+- `focusPoint`は待機エージェント一覧・市民一覧・InfoPanelの「ここへ移動」も使っているため、それらでも2画面モードの全体画面は動かなくなる（詳細画面は追従する）
+
+### 使った主な技術・仕組み
+- 共有ストアを複数のインスタンスが購読する場合、「反応するかどうか」を各インスタンスが自分のprops（`alwaysFollow`／`suppressHighlight`）で判断する
+
+---
+
 ## ブランチ構成の参考
 ```
 main
@@ -178,5 +203,6 @@ main
     └ feature/multi-view          (マージ済み)
     └ fix/perception-follow-buttons (マージ済み)
     └ feature/layer-visibility     (マージ済み)
-    └ feature/multi-log            (作業中)
+    └ feature/multi-log            (マージ済み)
+    └ fix/timeline-focus-detail-only (作業中)
 ```

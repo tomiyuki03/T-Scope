@@ -877,6 +877,7 @@
 
   const unsubFocus = focusPoint.subscribe((pt) => {
     if (!pt || !deck) return;
+    if (suppressHighlight) return;
     const closeZoom = Math.max(currentZoom, fitZoom + 5);
     deck.setProps({
       initialViewState: {
