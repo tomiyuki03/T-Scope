@@ -16,6 +16,7 @@
     currentStep,
     downloadProgress,
     downloadSize,
+    entities,
     extractProgress,
     loading,
     loadUrl,
@@ -45,6 +46,7 @@
   let dataLoaded = $state(false);
   let receivingSync = false;
   let receivingViewportSync = false;
+  let receivingSelectSync = false;
   let iframe1: HTMLIFrameElement ;
   let iframe2: HTMLIFrameElement ;
 
@@ -87,6 +89,14 @@
           iframe1?.contentWindow?.postMessage({ type: "tscope:setViewport", cx: event.data.cx, cy: event.data.cy, zoom: event.data.zoom }, "*");
         }
       }
+
+      if (event.data?.type === "tscope:select" && get(multiLogSync)) {
+        if (event.source === iframe1?.contentWindow) {
+          iframe2?.contentWindow?.postMessage({ type: "tscope:setSelect", id: event.data.id }, "*");
+        } else if (event.source === iframe2?.contentWindow) {
+          iframe1?.contentWindow?.postMessage({ type: "tscope:setSelect", id: event.data.id }, "*");
+        }
+      }
       
       if (event.data?.type !== "tscope:step") return;
       if (!get(multiLogSync)) return;
@@ -110,6 +120,11 @@
       window.parent.postMessage({ type: "tscope:viewport", cx: vp.cx, cy: vp.cy, zoom: vp.zoom }, "*");
     });
 
+    selectedId.subscribe((id) => {
+      if (receivingSelectSync) return;
+      window.parent.postMessage({ type: "tscope:select", id }, "*");
+    });
+
     window.addEventListener("message", (event) => {
       if (event.data?.type === "tscope:setStep") {
         receivingSync = true;
@@ -123,6 +138,13 @@
         receivingViewportSync = true;
         remoteViewportCommand.set({ cx: event.data.cx, cy: event.data.cy, zoom: event.data.zoom });
         receivingViewportSync = false;
+      }
+      else if (event.data?.type === "tscope:setSelect") {
+        const id = event.data.id as number | null;
+        if (id !== null && !get(entities).has(id)) return; 
+        receivingSelectSync = true;
+        selectedId.set(id);
+        receivingSelectSync = false;
       }
     });
   });
