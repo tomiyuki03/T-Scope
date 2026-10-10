@@ -13,7 +13,7 @@
   import { EntityURN, isAgent } from "$lib/rcrs/urns";
   import { t } from "$lib/i18n";
   import {
-    currentStep,
+    //currentStep,
     downloadProgress,
     downloadSize,
     entities,
@@ -29,6 +29,9 @@
     remoteViewportCommand,
     seekToStep,
     selectedId,
+    setStepRoute,
+    seekToStepLocal,
+    setSelectRoute,
   } from "$lib/stores/simulation";
   import { onMount } from "svelte";
   import { get } from "svelte/store";
@@ -44,9 +47,9 @@
   let activeDrawer: "timeline" | "layers" | null = $state(null);
   let screenshotMode = $state(false);
   let dataLoaded = $state(false);
-  let receivingSync = false;
+  //let receivingSync = false;
   let receivingViewportSync = false;
-  let receivingSelectSync = false;
+  //let receivingSelectSync = false;
   let iframe1: HTMLIFrameElement ;
   let iframe2: HTMLIFrameElement ;
 
@@ -90,48 +93,85 @@
         }
       }
 
-      if (event.data?.type === "tscope:select" && get(multiLogSync)) {
+     /* if (event.data?.type === "tscope:select" && get(multiLogSync)) {
         if (event.source === iframe1?.contentWindow) {
           iframe2?.contentWindow?.postMessage({ type: "tscope:setSelect", id: event.data.id }, "*");
         } else if (event.source === iframe2?.contentWindow) {
           iframe1?.contentWindow?.postMessage({ type: "tscope:setSelect", id: event.data.id }, "*");
         }
-      }
+      }*/
       
-      if (event.data?.type !== "tscope:step") return;
+      /*if (event.data?.type !== "tscope:step") return;
       if (!get(multiLogSync)) return;
       if (event.source === iframe1?.contentWindow){
         iframe2?.contentWindow?.postMessage({ type: "tscope:setStep", step: event.data.step }, "*");
       } else if (event.source === iframe2?.contentWindow){
         iframe1?.contentWindow?.postMessage({ type: "tscope:setStep", step: event.data.step }, "*");
-      }
+      }*/
     });
+
+    (window as unknown as Record<string, unknown>).__tscopeSeek = (step: number): boolean => {
+      if (!get(multiLogSync)) return false;
+      for (const f of [iframe1, iframe2]) {
+        const w = f?.contentWindow as unknown as Record<string, unknown> | undefined;
+        (w?.__tscopeSeekLocal as ((step: number) => void) | undefined)?.(step);
+      }
+      return true;
+    };
+
+    (window as unknown as Record<string, unknown>).__tscopeSelect = (id: number | null): boolean => {
+      if (!get(multiLogSync)) return false;
+      for (const f of [iframe1, iframe2]) {
+        const w = f?.contentWindow as unknown as Record<string, unknown> | undefined;
+        (w?.__tscopeSelectLocal as ((id: number | null) => void) | undefined)?.(id);
+      }
+      return true;
+    };
 
     if (!isEmbedded) return;
 
     //子フレーム側
-    currentStep.subscribe((step) => {
+
+    (window as unknown as Record<string, unknown>).__tscopeSeekLocal = (step: number) => seekToStepLocal(step);
+    setStepRoute((step) => {
+      const parent = window.parent as unknown as Record<string, unknown>;
+      const syncSeek = parent.__tscopeSeek as ((step: number) => boolean) | undefined;
+      return syncSeek ? syncSeek(step) : false;
+    });
+
+    (window as unknown as Record<string, unknown>).__tscopeSelectLocal = (id: number | null) => {
+      if (id !== null && !get(entities).has(id)) return;
+      selectedId.setLocal(id);
+    };
+
+    setSelectRoute((id) => {
+      const parent = window.parent as unknown as Record<string, unknown>;
+      const syncSelect = parent.__tscopeSelect as ((id: number | null) => boolean) | undefined;
+      return syncSelect ? syncSelect(id) : false;
+    });
+
+    /*currentStep.subscribe((step) => {
       if (receivingSync) return;
       window.parent.postMessage({ type: "tscope:step", step }, "*");
-    });
+    });*/
 
     mapViewport.subscribe((vp)=> {
       if (!vp || receivingViewportSync) return;
       window.parent.postMessage({ type: "tscope:viewport", cx: vp.cx, cy: vp.cy, zoom: vp.zoom }, "*");
     });
 
-    selectedId.subscribe((id) => {
+    /*selectedId.subscribe((id) => {
       if (receivingSelectSync) return;
       window.parent.postMessage({ type: "tscope:select", id }, "*");
-    });
+    });*/
 
     window.addEventListener("message", (event) => {
-      if (event.data?.type === "tscope:setStep") {
+      /*if (event.data?.type === "tscope:setStep") {
         receivingSync = true;
         seekToStep(event.data.step);
         receivingSync = false;
-      }
-      else if (event.data?.type === "tscope:setSync") {
+      }*/
+      /*else*/ if (event.data?.type === "tscope:setSync") {
         multiLogSync.set(event.data.sync);
       }
       else if (event.data?.type === "tscope:setViewport") {
@@ -139,13 +179,13 @@
         remoteViewportCommand.set({ cx: event.data.cx, cy: event.data.cy, zoom: event.data.zoom });
         receivingViewportSync = false;
       }
-      else if (event.data?.type === "tscope:setSelect") {
+      /*else if (event.data?.type === "tscope:setSelect") {
         const id = event.data.id as number | null;
         if (id !== null && !get(entities).has(id)) return; 
         receivingSelectSync = true;
         selectedId.set(id);
         receivingSelectSync = false;
-      }
+      }*/
     });
   });
 

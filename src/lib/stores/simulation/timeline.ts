@@ -20,7 +20,18 @@ import {
   type SimEvent,
 } from "./state";
 
+type StepRoute = (step: number) => boolean;
+let stepRoute: StepRoute | null = null;
+export function setStepRoute(route: StepRoute | null) {
+  stepRoute = route;
+}
+
 export function seekToStep(step: number) {
+  if (stepRoute?.(step)) return;
+  seekToStepLocal(step);
+}
+
+export function seekToStepLocal(step: number) {
   if (get(mode) !== "file") return;
   rebuildState(step);
   currentStep.set(step);
