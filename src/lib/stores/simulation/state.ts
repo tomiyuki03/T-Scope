@@ -43,7 +43,26 @@ export const entities = writable<Map<number, SimEntity>>(new Map());
 export const animatedEntities = writable<Map<number, SimEntity>>(new Map());
 export const currentStep = writable(0);
 export const maxStep = writable(0);
-export const selectedId = writable<number | null>(null);
+//export const selectedId = writable<number | null>(null);
+
+const _selectedId = writable<number | null>(null);
+
+type SelectRoute = (id: number | null) => boolean;
+let selectRoute: SelectRoute | null = null;
+export function setSelectRoute(route: SelectRoute | null) {
+  selectRoute = route;
+}
+
+export const selectedId = {
+  subscribe: _selectedId.subscribe,
+  set(id: number | null) {
+    if (selectRoute?.(id)) return;
+    _selectedId.set(id);
+  },
+  setLocal(id: number | null) {
+    _selectedId.set(id);
+  },
+};
 export const kernelConfig = writable<Record<string, string>>({});
 export const focusPoint = writable<{ x: number; y: number } | null>(null);
 export const agentActions = writable<Map<number, AgentAction>>(new Map());

@@ -143,6 +143,7 @@ T-Scope（RoboCup Rescue Simulation ビューワ、[shima004/SimScope](https://g
   - 選択解除（`null`）も同期する（片方で解除したら、もう片方も解除）
 - **相手のログに存在しないIDは無視する**：受信側で`entities`にそのIDがあるか確認してから設定する。2つのログが別のマップだとIDが対応せず、存在しないIDを`selectedId`に入れると`$selectedEntity`が`null`になり、`+page.svelte`の`isAgent($selectedEntity.urn)`でエラーになるため
 - 複数ログ時の詳細画面の見せ方は未検討のため、選択が同期されると、両方のログが2画面表示（全体＋詳細）になり、縦4分割のままになる（既知の見づらさ）
+- **（その後の変更）**：この`postMessage`版の選択同期は、描画のずれを解消するため、親が同期的に反映する方式に置き換えた（7章参照）
 
 ### 使った主な技術・仕組み（続き：同期ON/OFF・カメラ同期）
 - **URLクエリパラメータでの役割判定**（`?embed=1&primary=1`）：同じiframe内コンポーネントでも、パラメータの有無で「自分が左か右か」を判定し、表示するUIを変える
@@ -205,6 +206,48 @@ T-Scope（RoboCup Rescue Simulation ビューワ、[shima004/SimScope](https://g
 
 ---
 
+## 7. 複数ログの同期ずれの修正（ステップ移動・選択）
+
+**ブランチ**: `fix/multi-log-sync-lag`
+
+### 問題
+複数ログで、左のログで操作すると、**左が先に動き、右が少し遅れて動く**。
+
+### 原因（計測で確認）
+当初は「子→親→子とメッセージを中継するせいで遅れる」と考えたが、ブラウザのコンソールで計測すると、**伝達そのものは数ミリ秒程度**だった。遅れの大部分は、**受け取った側の処理時間**だった。
+
+| 操作 | 左の処理時間 | 右の遅れ（修正前） |
+|---|---|---|
+| ステップ10へ移動 | 約22ms | 約45ms |
+| ステップ100へ移動 | 約43ms | 約55ms |
+| ステップ200へ移動 | 約53ms | 約58ms |
+| 選択（2画面になるまで） | 約18ms | 33〜112ms |
+
+同じタブ内の同じオリジンのiframeは、**JavaScriptのスレッドを1本共有**しているため、左の処理が終わってから右の処理が始まり、左が先に描画される。
+
+### 対処：親が同じ処理の中で左右へ同期的に反映する
+- 1つの処理（タスク）の中で、左右の更新を続けて行えば、ブラウザの描画は1回になり、**左右が同じフレームで同時に更新される**
+- `postMessage`は非同期（メッセージごとに別の処理になる）ので使わず、**同じオリジンなので、親・子の関数を直接呼ぶ**
+- 入口が複数あるため（スライダー、コマ送り、再生、タイムライン、地図クリック、各一覧など）、入口ごとに書き換えず、**`seekToStep`と`selectedId.set`の中に「親に回すフック」を置いた**
+  - `timeline.ts`：`seekToStep`（フックを通る入口）と`seekToStepLocal`（実際の処理）に分割。`setStepRoute`でフックを設定
+  - `state.ts`：`selectedId`を、`subscribe`・`set`（フックを通る）・`setLocal`（フックを通さない）を持つ窓口に差し替え。`setSelectRoute`でフックを設定
+  - `+page.svelte`（子）：`window.__tscopeSeekLocal`／`__tscopeSelectLocal`を公開し、フックに「親の`__tscopeSeek`／`__tscopeSelect`を呼ぶ」を設定
+  - `+page.svelte`（親）：`window.__tscopeSeek`／`__tscopeSelect`を公開。同期ONなら左右の`*Local`を続けて呼んで`true`を返す。OFFなら`false`を返し、各iframeが自分で反映する
+- 再生（自動コマ送り）は、`seekToStep`の直後に`$currentStep`を読むが、直接呼び出し（同期）なので、戻った時点で更新済みであり、壊れない
+- これに伴い、`postMessage`版のステップ同期（`tscope:step`／`tscope:setStep`）と選択の同期（`tscope:select`／`tscope:setSelect`）は、**コメントアウト**した（確認後に削除する予定）。カメラの同期と同期ON/OFFは、`postMessage`のまま
+
+### 結果（計測）
+- ステップ移動：左右の描画フレームの時刻の差が、12回すべてで**0フレーム**（0.1ms以下）。同期OFFでは左だけが動き、右から操作しても揃う。再生中も左右が毎ステップ揃って進み、停止も正常
+- 選択：DOM挿入の差が0.1ms以下、描画フレームの差が0.2ms以下（6回）。同期OFFでは左だけが選択される
+
+### 未対応・注意
+- **コメントアウトした古いコードが残っている**（`+page.svelte`）。確認後に削除する
+- 計測は、コンソールからの関数呼び出し（`seekToStep`、`selectedId.set`、再生ボタンのクリック）で行った。マウスでの実操作での確認は未実施
+- カメラの同期は`postMessage`のままなので、数ミリ秒〜1フレームの遅れは残る（ドラッグの連続操作では目立たないと判断）
+- `reset.ts`の`selectedId.set(null)`も、同期ONのときは親に回る（片方のログを読み込み直すと、もう片方の選択も解除される）
+
+---
+
 ## ブランチ構成の参考
 ```
 main
@@ -214,5 +257,6 @@ main
     └ feature/layer-visibility     (マージ済み)
     └ feature/multi-log            (マージ済み)
     └ fix/timeline-focus-detail-only (マージ済み)
-    └ feature/multi-log-select-sync (作業中)
+    └ feature/multi-log-select-sync (マージ済み)
+    └ fix/multi-log-sync-lag       (作業中)
 ```
