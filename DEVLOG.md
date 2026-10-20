@@ -234,14 +234,20 @@ T-Scope（RoboCup Rescue Simulation ビューワ、[shima004/SimScope](https://g
   - `+page.svelte`（子）：`window.__tscopeSeekLocal`／`__tscopeSelectLocal`を公開し、フックに「親の`__tscopeSeek`／`__tscopeSelect`を呼ぶ」を設定
   - `+page.svelte`（親）：`window.__tscopeSeek`／`__tscopeSelect`を公開。同期ONなら左右の`*Local`を続けて呼んで`true`を返す。OFFなら`false`を返し、各iframeが自分で反映する
 - 再生（自動コマ送り）は、`seekToStep`の直後に`$currentStep`を読むが、直接呼び出し（同期）なので、戻った時点で更新済みであり、壊れない
-- これに伴い、`postMessage`版のステップ同期（`tscope:step`／`tscope:setStep`）と選択の同期（`tscope:select`／`tscope:setSelect`）は、**コメントアウト**した（確認後に削除する予定）。カメラの同期と同期ON/OFFは、`postMessage`のまま
+- これに伴い、`postMessage`版のステップ同期（`tscope:step`／`tscope:setStep`）と選択の同期（`tscope:select`／`tscope:setSelect`）は、PR #7ではコメントアウトで残し、`chore/remove-old-sync-code`で削除した。カメラの同期と同期ON/OFFは、`postMessage`のまま
+
+### 旧方式（postMessage中継）との違い
+- 旧方式：左の変更を`subscribe`で検知→親へ`postMessage`→親が右へ`postMessage`→右が処理。メッセージごとに別のタスクになるため、左の描画が先に終わり、右は後から重い処理をして描画された。右が反映したときの送り返し（無限ループ）を、`receivingSync`／`receivingSelectSync`のフラグで防いでいた
+- 新方式：`subscribe`による送信をやめ、入口のフックから親の関数を直接呼ぶ。送り返しが起きないので、フラグは不要になった
+- 単独モード（複数ログでない1画面）は、フックが`null`のままなので、影響しない（`if (!isEmbedded) return;`より後ろでフックを設定しているため）
+- 旧`setSelect`受信にあった「存在しないIDは無視」のチェックは、`__tscopeSelectLocal`に引き継いだ（ログごとにエンティティが違うため）
 
 ### 結果（計測）
 - ステップ移動：左右の描画フレームの時刻の差が、12回すべてで**0フレーム**（0.1ms以下）。同期OFFでは左だけが動き、右から操作しても揃う。再生中も左右が毎ステップ揃って進み、停止も正常
 - 選択：DOM挿入の差が0.1ms以下、描画フレームの差が0.2ms以下（6回）。同期OFFでは左だけが選択される
 
 ### 未対応・注意
-- **コメントアウトした古いコードが残っている**（`+page.svelte`）。確認後に削除する
+- 旧`postMessage`版のコメントアウトは、`chore/remove-old-sync-code`で削除済み（`+page.svelte`の10か所と、`state.ts`の旧`selectedId`定義の1行）。動作確認後に削除したため、`npm run check`は既存のエラー2件・警告2件のまま
 - 計測は、コンソールからの関数呼び出し（`seekToStep`、`selectedId.set`、再生ボタンのクリック）で行った。マウスでの実操作での確認は未実施
 - カメラの同期は`postMessage`のままなので、数ミリ秒〜1フレームの遅れは残る（ドラッグの連続操作では目立たないと判断）
 - `reset.ts`の`selectedId.set(null)`も、同期ONのときは親に回る（片方のログを読み込み直すと、もう片方の選択も解除される）
@@ -258,5 +264,6 @@ main
     └ feature/multi-log            (マージ済み)
     └ fix/timeline-focus-detail-only (マージ済み)
     └ feature/multi-log-select-sync (マージ済み)
-    └ fix/multi-log-sync-lag       (作業中)
+    └ fix/multi-log-sync-lag       (マージ済み)
+    └ chore/remove-old-sync-code   (旧postMessage版のコメントアウトを削除。PR待ち)
 ```
