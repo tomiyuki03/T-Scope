@@ -76,7 +76,10 @@
     if (base) return [...base, 240] as [number, number, number, number];
 
     // Regular building: brokenness が 1 以上で茶色
-    return e.brokenness > 0 ? [112, 92, 76, 185] : [80, 100, 140, 220];
+    //return e.brokenness > 0 ? [112, 92, 76, 185] : [80, 100, 140, 220];
+    const v = Math.round(150 - e.brokenness * 0.5); // 無傷150 → 全壊100
+    return [v, v, v, 255];
+
   }
 
   const AGENT_EMOJI: Record<number, string> = {
@@ -169,7 +172,7 @@
       case EntityURN.AMBULANCE_TEAM:
         return [240, 240, 240, 255]; // 白
       case EntityURN.POLICE_FORCE:
-        return [60, 140, 255, 255];
+        return [30, 90, 220, 255];
       default:
         return [200, 200, 200, 255];
     }
@@ -370,15 +373,25 @@
       }
       return [
         new LineLayer<LineEntry>({
+        id: "comm-lines-casing",
+        data: lineData,
+        getSourcePosition: (d) => d.source,
+        getTargetPosition: (d) => d.target,
+        getColor: [255, 255, 255, 200],
+        getWidth: 300,
+        widthMinPixels: 3,
+        widthMaxPixels: 6,
+        }) as unknown as LineLayer<unknown>,
+        new LineLayer<LineEntry>({
           id: "comm-lines",
           data: lineData,
           getSourcePosition: (d) => d.source,
           getTargetPosition: (d) => d.target,
           getColor: (d) =>
-            [...channelColorRGB(d.ch), 180] as [number, number, number, number],
+            [...channelColorRGB(d.ch), 230] as [number, number, number, number],
           getWidth: 300,
-          widthMinPixels: 1,
-          widthMaxPixels: 3,
+          widthMinPixels: 2,
+          widthMaxPixels: 4,
           updateTriggers: { getColor: [filteredComms] },
         }) as unknown as LineLayer<unknown>,
         new ScatterplotLayer<SenderEntry>({
@@ -407,8 +420,8 @@
         data: roads,
         getPolygon: (d: RoadEntity) => d.apexes,
         getFillColor: (d: RoadEntity) =>
-          d.urn === EntityURN.HYDRANT ? [30, 100, 140, 220] : [45, 55, 70, 200],
-        getLineColor: [70, 85, 105, 255],
+          d.urn === EntityURN.HYDRANT ? [30, 100, 140, 220] : [200, 200, 200, 255],
+        getLineColor: [170, 170, 170, 255],
         lineWidthMinPixels: 0.5,
         pickable: true,
         onClick: (info: PickingInfo) =>
@@ -431,8 +444,8 @@
             : perceivedIds?.has(d.id)
               ? [0, 200, 180, 200]
               : perceivedIds
-                ? [100, 120, 160, 50]
-                : [100, 120, 160, 180],
+                ? [90, 90, 90, 50]
+                : [90, 90, 90, 200],
         lineWidthMinPixels: 1.5,
         pickable: true,
         onClick: (info: PickingInfo) =>
@@ -452,8 +465,7 @@
         getPolygon: (d: BlockadeEntity) => d.apexes,
         getFillColor: (d: BlockadeEntity) =>
           perceivedIds && !perceivedIds.has(d.id)
-            ? [200, 160, 40, 40]
-            : [200, 160, 40, 200],
+            ? [10, 10, 10, 40] : [10, 10, 10, 255],
         getLineColor: (d: BlockadeEntity) =>
           d.id === selId
             ? [0, 220, 255, 255]
@@ -463,7 +475,7 @@
                 ? [255, 80, 200, 255]
                 : perceivedIds
                   ? [240, 200, 60, 60]
-                  : [240, 200, 60, 255],
+                  : [100, 100, 100, 255],
         lineWidthMinPixels: 1,
         lineWidthMaxPixels: 4,
         pickable: true,
@@ -624,6 +636,9 @@
     // circle モード（従来）
     const circleLayer = (id: string, data: HumanEntity[]) =>
       new ScatterplotLayer({
+        stroked: true,
+        getLineColor: [30, 30, 30, 255],
+        lineWidthMinPixels: 1,
         id,
         data,
         getPosition: (d: HumanEntity) => [d.x, d.y],
@@ -966,6 +981,6 @@
     width: 100%;
     height: 100%;
     display: block;
-    background: #0d1117;
+    background: var(--map-bg);
   }
 </style>

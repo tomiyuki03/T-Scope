@@ -485,14 +485,14 @@
     width: 240px;
     max-height: 340px;
     overflow-y: auto;
-    background: rgba(13, 20, 30, 0.92);
-    border: 1px solid rgba(0, 200, 255, 0.2);
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
     border-radius: 6px;
-    color: #c8d8e8;
+    color: var(--text);
     font-size: 12px;
     line-height: 1.2;
     backdrop-filter: blur(6px);
-    box-shadow: 0 0 20px rgba(0, 180, 255, 0.08);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
     z-index: 10;
     display: flex;
     flex-direction: column;
@@ -514,13 +514,13 @@
     gap: 4px;
     min-height: 28px;
     padding: 6px 10px 5px;
-    border-bottom: 1px solid rgba(0, 200, 255, 0.1);
+    border-bottom: 1px solid rgba(var(--accent-rgb),0.1);
     flex-shrink: 0;
     cursor: pointer;
     user-select: none;
   }
   .panel-header:hover {
-    background: rgba(255, 255, 255, 0.04);
+    background: rgba(var(--ink-rgb),  0.04);
   }
 
   .panel-label {
@@ -529,17 +529,17 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #00c8ff;
+    color: var(--accent);
     flex: 1;
   }
 
   .collapse-arrow {
     font-size: 13px;
-    color: #607080;
+    color: var(--muted);
     line-height: 1;
   }
   .panel-header:hover .collapse-arrow {
-    color: #c8d8e8;
+    color: var(--text);
   }
 
   .ch-col {
@@ -556,7 +556,7 @@
     color: #ffc840;
   }
   .ch-col.actual {
-    color: #607080;
+    color: var(--muted);
   }
 
   .section-label {
@@ -565,12 +565,12 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #00c8ff;
+    color: var(--accent);
     padding: 2px 10px 0;
   }
   :is(.row, .dual-row) + .section-label {
     margin-top: 2px;
-    border-top: 1px solid rgba(0, 200, 255, 0.1);
+    border-top: 1px solid rgba(var(--accent-rgb),0.1);
   }
 
   .row,
@@ -590,11 +590,11 @@
   }
   .row:hover,
   .dual-row:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(var(--ink-rgb),  0.05);
   }
   .row.selected,
   .dual-row.selected {
-    background: rgba(0, 200, 255, 0.1);
+    background: rgba(var(--accent-rgb),0.1);
   }
 
   .dual-row {
@@ -605,7 +605,7 @@
   }
 
   .cid {
-    color: #607080;
+    color: var(--muted);
     font-size: 11px;
     line-height: 13px;
     flex-shrink: 0;
@@ -632,7 +632,7 @@
     display: inline-block;
     width: 40px;
     height: 4px;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(var(--ink-rgb),  0.1);
     border-radius: 2px;
     overflow: hidden;
     flex-shrink: 0;
@@ -649,7 +649,7 @@
   .num {
     font-size: 10px;
     line-height: 12px;
-    color: #a8c8d8;
+    color: var(--text-2);
     font-variant-numeric: tabular-nums;
     flex-shrink: 0;
   }
