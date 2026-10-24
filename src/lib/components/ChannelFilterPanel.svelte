@@ -72,7 +72,7 @@
           </button>
           <span
             class="ch-meta"
-            style="color:color-mix(in srgb, {color} 55%, #607080)"
+            style="color:color-mix(in srgb, {color} 55%, var(--muted))"
             >{sizeLabel}</span
           >
           <span class="ch-count" class:zero={!stats} style="color:{color}">
@@ -86,13 +86,13 @@
 
 <style>
   .panel {
-    background: rgba(13, 20, 30, 0.92);
-    border: 1px solid rgba(0, 200, 255, 0.2);
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
     border-radius: 6px;
     padding: 5px 10px 6px;
     line-height: 1.2;
     backdrop-filter: blur(6px);
-    box-shadow: 0 0 20px rgba(0, 180, 255, 0.08);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
   }
 
   .title {
@@ -101,7 +101,7 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #00c8ff;
+    color: var(--accent);
     margin-bottom: 4px;
   }
 
@@ -119,7 +119,7 @@
   }
 
   .ch-btn {
-    --c: #60c8ff;
+    --c: var(--accent);
     display: flex;
     align-items: center;
     gap: 4px;

@@ -531,14 +531,14 @@
 
   .panel {
     width: 260px;
-    background: rgba(13, 20, 30, 0.92);
-    border: 1px solid rgba(0, 200, 255, 0.2);
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
     border-radius: 6px;
-    color: #c8d8e8;
+    color: var(--text);
     font-size: 13px;
     line-height: 1.2;
     backdrop-filter: blur(6px);
-    box-shadow: 0 0 20px rgba(0, 180, 255, 0.08);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
     z-index: 10;
     max-height: calc(100vh - 24px);
     overflow-y: auto;
@@ -559,7 +559,7 @@
     gap: 7px;
     min-height: 34px;
     padding: 8px 12px;
-    border-bottom: 1px solid rgba(0, 200, 255, 0.1);
+    border-bottom: 1px solid rgba(var(--accent-rgb),0.1);
   }
 
   .panel-pinned header {
@@ -570,14 +570,14 @@
     font-size: 11px;
     line-height: 13px;
     font-weight: 600;
-    color: #00c8ff;
+    color: var(--accent);
     text-transform: uppercase;
     letter-spacing: 0.06em;
   }
 
   .entity-id {
     flex: 1;
-    color: #607080;
+    color: var(--muted);
     font-size: 11px;
     line-height: 13px;
   }
@@ -616,14 +616,14 @@
     height: 16px;
     background: none;
     border: none;
-    color: #607080;
+    color: var(--muted);
     cursor: pointer;
     font-size: 13px;
     padding: 0;
     line-height: 1;
   }
   .close-btn:hover {
-    color: #c8d8e8;
+    color: var(--text);
   }
 
   .props {
@@ -642,7 +642,7 @@
   }
 
   .key {
-    color: #607080;
+    color: var(--muted);
     flex-shrink: 0;
     line-height: 15px;
   }
@@ -652,7 +652,7 @@
     align-items: center;
     gap: 6px;
     text-align: right;
-    color: #a8c8d8;
+    color: var(--text-2);
     line-height: 15px;
   }
 
@@ -660,7 +660,7 @@
     display: inline-block;
     width: 60px;
     height: 4px;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(var(--ink-rgb),  0.1);
     border-radius: 2px;
     overflow: hidden;
   }
@@ -673,7 +673,7 @@
   .unit {
     font-size: 10px;
     line-height: 12px;
-    color: #607080;
+    color: var(--muted);
     font-weight: 400;
   }
 
@@ -683,7 +683,7 @@
   }
 
   .action-arrow {
-    color: #607080;
+    color: var(--muted);
     font-weight: 400;
   }
 
@@ -692,14 +692,14 @@
     border: none;
     padding: 0;
     cursor: pointer;
-    color: #00c8ff;
+    color: var(--accent);
     font-size: inherit;
     line-height: inherit;
     text-decoration: underline;
     text-underline-offset: 2px;
   }
   .link:hover {
-    color: #60e0ff;
+    color: var(--accent);
   }
 
 
@@ -763,13 +763,13 @@
   }
 
   .btn.follow {
-    border: 1px solid rgba(0, 200, 255, 0.6);
-    color: #00c8ff;
-    background: rgba(0, 180, 255, 0.12);
+    border: 1px solid rgba(var(--accent-rgb),0.6);
+    color: var(--accent);
+    background: rgba(var(--accent-rgb), 0.12);
   }
   .btn.follow:hover {
-    border-color: rgba(0, 200, 255, 0.4);
-    color: #a8c8d8;
+    border-color: rgba(var(--accent-rgb),0.4);
+    color: var(--text-2);
   }
   .btn.follow.active {
     border: 1px solid rgba(255, 200, 60, 0.5);
@@ -782,7 +782,7 @@
     align-items: center;
     gap: 6px;
     min-height: 22px;
-    background: rgba(255, 255, 255, 0.04);
+    background: rgba(var(--ink-rgb),  0.04);
     border: 1px solid color-mix(in srgb, var(--ch-color) 30%, transparent);
     border-radius: 4px;
     padding: 3px 8px;
@@ -791,7 +791,7 @@
     text-align: left;
   }
   .ch-btn:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(var(--ink-rgb),  0.08);
   }
 
   .ch-label {
@@ -805,14 +805,14 @@
   .ch-count {
     font-size: 11px;
     line-height: 13px;
-    color: #a8c8d8;
+    color: var(--text-2);
     flex: 1;
   }
 
   .ch-arrow {
     font-size: 10px;
     line-height: 12px;
-    color: #607080;
+    color: var(--muted);
   }
 
   .ch-senders {
@@ -820,13 +820,13 @@
     flex-direction: column;
     gap: 2px;
     padding: 2px 0 4px 12px;
-    border-left: 2px solid rgba(0, 200, 255, 0.15);
+    border-left: 2px solid rgba(var(--accent-rgb),0.15);
     margin-left: 8px;
   }
 
   .sender-divider {
     height: 1px;
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(var(--ink-rgb),  0.08);
     margin: 2px 0;
   }
 
@@ -839,7 +839,7 @@
   }
 
   .comm-entry {
-    --ch-color: #60c8ff;
+    --ch-color: var(--accent);
     background: color-mix(in srgb, var(--ch-color) 8%, transparent);
     border: 1px solid color-mix(in srgb, var(--ch-color) 30%, transparent);
     border-radius: 4px;
@@ -867,7 +867,7 @@
   .comm-id {
     background: none;
     border: none;
-    color: #a8c8d8;
+    color: var(--text-2);
     font-size: 11px;
     cursor: pointer;
     padding: 0;
@@ -875,7 +875,7 @@
     text-align: left;
   }
   .comm-id:hover {
-    color: #00c8ff;
+    color: var(--accent);
     text-decoration: underline;
   }
 
@@ -887,7 +887,7 @@
 
   .comm-text {
     font-size: 11px;
-    color: #c8d8e8;
+    color: var(--text);
     font-style: italic;
     padding-left: 2px;
   }

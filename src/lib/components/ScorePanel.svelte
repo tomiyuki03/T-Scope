@@ -119,13 +119,13 @@
     display: flex;
     flex-direction: column;
     gap: 3px;
-    background: rgba(13, 20, 30, 0.92);
-    border: 1px solid rgba(0, 200, 255, 0.2);
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
     border-radius: 6px;
     padding: 5px 12px;
     line-height: 1.2;
     backdrop-filter: blur(6px);
-    box-shadow: 0 0 20px rgba(0, 180, 255, 0.08);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
     z-index: 10;
   }
 
@@ -135,14 +135,14 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #00c8ff;
+    color: var(--accent);
   }
 
   .value {
     font-size: 16px;
     line-height: 18px;
     font-variant-numeric: tabular-nums;
-    color: #c8d8e8;
+    color: var(--text);
     font-weight: 600;
   }
 
@@ -156,7 +156,7 @@
 
   .divider {
     height: 1px;
-    background: rgba(0, 200, 255, 0.1);
+    background: rgba(var(--accent-rgb),0.1);
     margin: 2px 0;
   }
 
@@ -170,14 +170,14 @@
   .agent-item {
     font-size: 12px;
     line-height: 15px;
-    color: #a8c8d8;
+    color: var(--text-2);
     font-variant-numeric: tabular-nums;
   }
 
   .max {
     font-size: 12px;
     line-height: 15px;
-    color: #607080;
+    color: var(--muted);
     font-weight: 400;
   }
 </style>

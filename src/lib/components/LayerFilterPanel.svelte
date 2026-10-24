@@ -41,7 +41,7 @@
     </div>
     {#if $showLegend}
         <div class="legend">
-            <div class="legend-row"><span class="swatch" style="background-color: rgb(60,200,80)"></span>市民（健康？）</div>
+            <div class="legend-row"><span class="swatch" style="background-color: rgb(60,200,80)"></span>市民（健康）</div>
             <div class="legend-row"><span class="swatch" style="background-color: rgb(10,10,10)"></span>市民（HP低下）</div>
             <div class="legend-row"><span class="swatch" style="background-color: rgb(220,30,30)"></span>消防隊</div>
             <div class="legend-row"><span class="swatch" style="background-color: rgb(255,140,0)"></span>消防隊（救助中）</div>
@@ -56,13 +56,13 @@
 
 <style>
     .panel {
-        background: rgba(13, 20, 30, 0.92);
-        border: 1px solid rgba(0, 200, 255, 0.2);
+        background: var(--panel-bg);
+        border: 1px solid var(--panel-border);
         border-radius: 6px;
         padding: 5px 10px 6px;
         line-height: 1.2;
         backdrop-filter: blur(6px);
-        box-shadow: 0 0 20px rgba(0, 180, 255, 0.08);
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
     }
     .title {
         font-size: 10px;
@@ -70,7 +70,7 @@
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.08em;
-        color: #00c8ff;
+        color: var(--accent);
         margin-bottom: 4px;
     }
     .item-list {
@@ -82,11 +82,11 @@
         display: flex;
         align-items: center;
         min-height: 26px;
-        background: rgba(0, 180, 255, 0.12);
-        border: 1px solid rgba(0, 200, 255, 0.3);
+        background: rgba(var(--accent-rgb), 0.12);
+        border: 1px solid rgba(var(--accent-rgb),0.3);
         border-radius: 4px;
         padding: 4px 9px;
-        color: #c8d8e8;
+        color: var(--text);
         font-size: 12px;
         cursor: pointer;
         text-align: left;
@@ -95,7 +95,7 @@
         background 0.15s;
     }
     .item-btn:hover {
-        background: rgba(0, 180, 255, 0.22);
+        background: rgba(var(--accent-rgb), 0.22);
     }
     .item-btn.hidden {
         opacity: 0.3;
@@ -106,7 +106,7 @@
         margin-top: 6px;
         padding-top: 6px;
         /*background: rgba(109, 109, 109, 0.2);*/
-        border-top: 1px solid rgba(0, 200, 255, 0.15);
+        border-top: 1px solid rgba(var(--accent-rgb),0.15);
         display: flex;
         flex-direction: column;
         gap: 4px;
@@ -116,7 +116,7 @@
         align-items: center;
         gap: 6px;
         font-size: 12px;
-        color: #c8d8e8;
+        color: var(--text);
     }
 
     .swatch {
@@ -125,6 +125,6 @@
         height: 12px;
         border-radius: 2px;
         flex-shrink: 0;
-        border: 1px solid rgba(255, 255, 255);
+        border: 1px solid rgba(var(--ink-rgb), 0.3);
     }
 </style>

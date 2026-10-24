@@ -619,14 +619,14 @@
 <style>
   .ctrl-panel {
     width: 240px;
-    background: rgba(13, 20, 30, 0.92);
-    border: 1px solid rgba(0, 200, 255, 0.2);
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
     border-radius: 6px;
-    color: #c8d8e8;
+    color: var(--text);
     font-size: 13px;
     padding: 10px;
     backdrop-filter: blur(6px);
-    box-shadow: 0 0 20px rgba(0, 180, 255, 0.08);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
     z-index: 10;
     display: flex;
     flex-direction: column;
@@ -636,7 +636,7 @@
 
   .lang-switch {
     display: flex;
-    border: 1px solid rgba(0, 200, 255, 0.2);
+    border: 1px solid var(--panel-border);
     border-radius: 4px;
     overflow: hidden;
   }
@@ -645,9 +645,9 @@
     min-width: 34px;
     height: 22px;
     border: none;
-    border-right: 1px solid rgba(0, 200, 255, 0.16);
-    background: rgba(255, 255, 255, 0.04);
-    color: #607080;
+    border-right: 1px solid rgba(var(--accent-rgb),0.16);
+    background: rgba(var(--ink-rgb),  0.04);
+    color: var(--muted);
     font-size: 10px;
     font-weight: 700;
     line-height: 1;
@@ -659,8 +659,8 @@
   }
 
   .lang-switch button.active {
-    background: rgba(0, 200, 255, 0.16);
-    color: #00c8ff;
+    background: rgba(var(--accent-rgb),0.16);
+    color: var(--accent);
   }
 
   .inputs-header {
@@ -673,7 +673,7 @@
     border-radius: 4px;
   }
   .inputs-header:hover {
-    background: rgba(255, 255, 255, 0.04);
+    background: rgba(var(--ink-rgb),  0.04);
   }
   .inputs-header .section-label {
     flex: 1;
@@ -681,10 +681,10 @@
   }
   .inputs-header .collapse-arrow {
     font-size: 13px;
-    color: #607080;
+    color: var(--muted);
   }
   .inputs-header:hover .collapse-arrow {
-    color: #c8d8e8;
+    color: var(--text);
   }
 
   .section-label {
@@ -694,7 +694,7 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #00c8ff;
+    color: var(--accent);
     margin-bottom: 6px;
   }
 
@@ -706,10 +706,10 @@
 
   .url-input {
     flex: 1;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(var(--ink-rgb),  0.05);
+    border: 1px solid rgba(var(--ink-rgb),  0.1);
     border-radius: 4px;
-    color: #c8d8e8;
+    color: var(--text);
     font-size: 12px;
     height: 26px;
     line-height: 16px;
@@ -722,10 +722,10 @@
 
   .port-input {
     width: 52px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(var(--ink-rgb),  0.05);
+    border: 1px solid rgba(var(--ink-rgb),  0.1);
     border-radius: 4px;
-    color: #c8d8e8;
+    color: var(--text);
     font-size: 12px;
     height: 26px;
     line-height: 16px;
@@ -749,12 +749,12 @@
     white-space: nowrap;
   }
   .btn.primary {
-    background: rgba(0, 180, 255, 0.15);
-    border: 1px solid rgba(0, 200, 255, 0.3);
-    color: #00c8ff;
+    background: rgba(var(--accent-rgb), 0.15);
+    border: 1px solid rgba(var(--accent-rgb),0.3);
+    color: var(--accent);
   }
   .btn.primary:hover {
-    background: rgba(0, 180, 255, 0.25);
+    background: rgba(var(--accent-rgb), 0.25);
   }
   .btn-row {
     display: flex;
@@ -771,18 +771,18 @@
   }
 
   .btn.follow {
-    border: 1px solid rgba(0, 200, 255, 0.6);
-    color: #00c8ff;
-    background: rgba(0, 180, 255, 0.12);
+    border: 1px solid rgba(var(--accent-rgb),0.6);
+    color: var(--accent);
+    background: rgba(var(--accent-rgb), 0.12);
   }
   .btn.follow:hover {
-    border-color: rgba(0, 200, 255, 0.4);
-    color: #a8c8d8;
+    border-color: rgba(var(--accent-rgb),0.4);
+    color: var(--text-2);
   }
   .btn.follow.active {
-    border: 1px solid rgba(255, 200, 60, 0.5);
-    color: #ffc840;
-    background: rgba(255, 200, 60, 0.1);
+    border: 1px solid rgba(180, 83, 9, 0.5);
+    color: #a14a00;
+    background: rgba(180, 83, 9, 0.1);
   }
   .btn.danger {
     background: rgba(255, 60, 60, 0.12);
@@ -811,7 +811,7 @@
 
   .divider {
     text-align: center;
-    color: #405060;
+    color: var(--dim);
     font-size: 11px;
     line-height: 13px;
     position: relative;
@@ -841,13 +841,13 @@
   .step-counter {
     font-size: 11px;
     line-height: 12px;
-    color: #a8c8d8;
+    color: var(--text-2);
     font-variant-numeric: tabular-nums;
   }
 
   input[type="range"] {
     width: 100%;
-    accent-color: #00c8ff;
+    accent-color: var(--accent);
   }
 
   .playback-row {
@@ -868,24 +868,24 @@
     font-size: 10px;
     min-height: 20px;
     padding: 3px 5px;
-    border: 1px solid rgba(0, 200, 255, 0.3);
-    color: #607080;
+    border: 1px solid rgba(var(--accent-rgb),0.3);
+    color: var(--muted);
     background: none;
   }
   .btn.speed:hover {
-    color: #a8c8d8;
-    border-color: rgba(0, 200, 255, 0.5);
+    color: var(--text-2);
+    border-color: rgba(var(--accent-rgb),0.5);
   }
   .btn.speed.active {
-    color: #00c8ff;
-    border-color: rgba(0, 200, 255, 0.7);
-    background: rgba(0, 200, 255, 0.08);
+    color: var(--accent);
+    border-color: rgba(var(--accent-rgb),0.7);
+    background: rgba(var(--accent-rgb),0.08);
   }
 
   .btn.icon {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: #a8c8d8;
+    background: rgba(var(--ink-rgb),  0.05);
+    border: 1px solid rgba(var(--ink-rgb),  0.1);
+    color: var(--text-2);
     padding: 4px 10px;
     font-size: 11px;
     min-height: 22px;
@@ -893,31 +893,31 @@
   }
 
   .btn.icon.loop.active {
-    color: #00c8ff;
-    border-color: rgba(0, 200, 255, 0.6);
-    background: rgba(0, 200, 255, 0.1);
+    color: var(--accent);
+    border-color: rgba(var(--accent-rgb),0.6);
+    background: rgba(var(--accent-rgb),0.1);
   }
 
   .loop-countdown {
     font-size: 10px;
     line-height: 12px;
-    color: #607080;
+    color: var(--muted);
     text-align: center;
     padding: 3px 0 0;
     font-variant-numeric: tabular-nums;
   }
   .btn.icon:hover:not(:disabled) {
-    background: rgba(0, 180, 255, 0.15);
-    color: #00c8ff;
+    background: rgba(var(--accent-rgb), 0.15);
+    color: var(--accent);
   }
   .btn.icon.play {
-    background: rgba(0, 180, 255, 0.12);
-    border-color: rgba(0, 200, 255, 0.3);
-    color: #00c8ff;
+    background: rgba(var(--accent-rgb), 0.12);
+    border-color: rgba(var(--accent-rgb),0.3);
+    color: var(--accent);
     min-width: 36px;
   }
   .btn.icon.play:hover {
-    background: rgba(0, 180, 255, 0.25);
+    background: rgba(var(--accent-rgb), 0.25);
   }
 
   .overlay-backdrop {
@@ -931,8 +931,8 @@
   }
 
   .overlay-panel {
-    background: rgba(13, 20, 30, 0.97);
-    border: 1px solid rgba(0, 200, 255, 0.25);
+    background: var(--panel-bg);
+    border: 1px solid rgba(var(--accent-rgb),0.25);
     border-radius: 8px;
     padding: 16px;
     width: 720px;
@@ -941,7 +941,7 @@
     flex-direction: column;
     gap: 10px;
     backdrop-filter: blur(8px);
-    box-shadow: 0 0 40px rgba(0, 180, 255, 0.12);
+    box-shadow: 0 0 40px rgba(var(--accent-rgb), 0.12);
   }
 
   .overlay-header {
@@ -953,15 +953,15 @@
   .close-btn {
     background: none;
     border: none;
-    color: #607080;
+    color: var(--muted);
     font-size: 14px;
     cursor: pointer;
     padding: 2px 6px;
     border-radius: 4px;
   }
   .close-btn:hover {
-    color: #a8c8d8;
-    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-2);
+    background: rgba(var(--ink-rgb),  0.05);
   }
 
   .config-table {
@@ -980,7 +980,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    background: rgba(0, 180, 255, 0.06);
+    background: rgba(var(--accent-rgb), 0.06);
     border: none;
     border-radius: 4px;
     padding: 5px 8px;
@@ -989,12 +989,12 @@
     width: 100%;
   }
   .group-header:hover {
-    background: rgba(0, 180, 255, 0.12);
+    background: rgba(var(--accent-rgb), 0.12);
   }
 
   .group-arrow {
     font-size: 10px;
-    color: #00c8ff;
+    color: var(--accent);
     width: 10px;
     flex-shrink: 0;
   }
@@ -1002,13 +1002,13 @@
   .group-name {
     font-size: 11px;
     font-weight: 600;
-    color: #00c8ff;
+    color: var(--accent);
     flex: 1;
   }
 
   .group-count {
     font-size: 10px;
-    color: #405060;
+    color: var(--dim);
     font-variant-numeric: tabular-nums;
   }
 
@@ -1016,7 +1016,7 @@
     display: flex;
     flex-direction: column;
     padding: 2px 0 4px 16px;
-    border-left: 1px solid rgba(0, 200, 255, 0.1);
+    border-left: 1px solid rgba(var(--accent-rgb),0.1);
     margin-left: 12px;
   }
 
@@ -1026,7 +1026,7 @@
     gap: 12px;
     font-size: 11px;
     padding: 2px 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    border-bottom: 1px solid rgba(var(--ink-rgb),  0.04);
     line-height: 1.4;
   }
 
@@ -1040,7 +1040,7 @@
   }
 
   .config-val {
-    color: #a8c8d8;
+    color: var(--text-2);
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
   }

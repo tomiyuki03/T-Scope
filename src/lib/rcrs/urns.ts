@@ -225,7 +225,7 @@ export function entityColor(urn: number, hp = 10000): string {
     case EntityURN.FIRE_BRIGADE:
       return "#dc1e1e";
     case EntityURN.AMBULANCE_TEAM:
-      return "#f0f0f0";
+      return "#6b7280";
     case EntityURN.POLICE_FORCE:
       return "#3c8cff";
     case EntityURN.CIVILIAN: {

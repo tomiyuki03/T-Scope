@@ -269,7 +269,7 @@
   .app {
     position: fixed;
     inset: 0;
-    background: #0d1117;
+    background: var(--map-bg);
   }
 
   .timeline-drawer {
@@ -278,8 +278,8 @@
     left: 0;
     width: 300px;
     height: 100%;
-    background: rgba(10, 16, 24, 0.96);
-    border-right: 1px solid rgba(0, 200, 255, 0.18);
+    background: var(--panel-bg);
+    border-right: 1px solid rgba(var(--accent-rgb),0.18);
     backdrop-filter: blur(8px);
     box-shadow: 4px 0 24px rgba(0, 0, 0, 0.4);
     z-index: 20;
@@ -299,11 +299,11 @@
     min-width: 20px;
     height: auto;
     min-height: 32px;
-    background: rgba(0, 180, 255, 0.18);
-    border: 1px solid rgba(0, 200, 255, 0.55);
+    background: var(--panel-bg);
+    border:1px solid var(--panel-border);
     border-left: none;
     border-radius: 0 6px 6px 0;
-    color: #00e0ff;
+    color: var(--accent);
     font-size: 12px;
     line-height: 1.2;
     cursor: pointer;
@@ -315,13 +315,14 @@
       left 0.25s ease,
       background 0.12s,
       box-shadow 0.12s;
-    box-shadow: 2px 0 10px rgba(0, 180, 255, 0.3);
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.25);
     writing-mode: vertical-rl;
   }
 
   .timeline-toggle:hover {
-    background: rgba(0, 200, 255, 0.32);
-    box-shadow: 2px 0 14px rgba(0, 200, 255, 0.5);
+    background: rgba(var(--accent-rgb), 0.55);
+    color: var(--accent);
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.25);
   }
 
   .left-col {
@@ -350,7 +351,7 @@
     flex-direction: column;
     align-items: center;
     gap: 12px;
-    color: #00c8ff;
+    color: var(--accent);
     font-size: 14px;
     line-height: 17px;
     font-family: monospace;
@@ -360,14 +361,14 @@
   .progress-wrap {
     width: 100%;
     height: 4px;
-    background: rgba(0, 200, 255, 0.15);
+    background: rgba(var(--accent-rgb),0.15);
     border-radius: 2px;
     overflow: hidden;
   }
 
   .progress-bar {
     height: 100%;
-    background: #00c8ff;
+    background: var(--accent);
     border-radius: 2px;
   }
 
@@ -388,8 +389,8 @@
   .spinner {
     width: 40px;
     height: 40px;
-    border: 3px solid rgba(0, 200, 255, 0.2);
-    border-top-color: #00c8ff;
+    border: 3px solid rgba(var(--accent-rgb),0.2);
+    border-top-color: var(--accent);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
   }
