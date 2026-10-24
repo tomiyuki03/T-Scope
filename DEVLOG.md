@@ -314,6 +314,41 @@ T-Scope（RoboCup Rescue Simulation ビューワ、[shima004/SimScope](https://g
 
 ---
 
+## 10. GitHub Pagesでの公開に向けた修正（公開パス）
+
+**ブランチ**: `chore/pages-base-path`
+
+### 目的
+`tomiyuki03/T-Scope`（fork）のGitHub Pagesで、`main`にマージせず、`develop`から公開できるようにする。公開先は`https://tomiyuki03.github.io/T-Scope/`。Web版は静的サイトなので、開いた人ごとに、自分のブラウザの中で動く（選択・再生位置・読み込んだログは共有されない）。
+
+### 問題
+- 公開先のパスが、元のリポジトリ名`/SimScope`で固定されていた（`svelte.config.js`）。`/T-Scope`の下に置くと、画面が出ない
+- 複数ログモードの左右の画面（iframe）が、`src="/?embed=1..."`と、ルートの`/`に固定されていた。公開先では、`/T-Scope/`の外を指してしまう
+
+### やったこと
+- `svelte.config.js`：公開パスを`/T-Scope`に変更。環境変数`BASE_PATH`で上書きできる（リポジトリ名を変えた場合用）。`GITHUB_PAGES=true`のときだけ有効
+- `+page.svelte`：`$app/paths`の`base`を使い、iframeの`src`を`{base}/?embed=1...`にした
+
+### 確認
+- 公開用のビルド（`GITHUB_PAGES=true PUBLIC_DIRECT_FETCH=true npm run build`）を、`/T-Scope/`の下に置いてブラウザで開き、画面が出ること、コンソールにエラーが無いこと、複数ログの左右の画面が`/T-Scope/?embed=1...`を読み込むことを確認した
+- `npm run check`：既存のエラー2件・警告2件のまま（増えていない）
+
+### 公開の手順（マージ後、GitHubの設定とActionsを手動で行う）
+1. Settings → Pages → Source を「GitHub Actions」にする
+2. Settings → Environments → `github-pages` で、デプロイを許可するブランチに`develop`を加える（初期値は`main`のみの場合がある）
+3. Actions → 「Deploy to GitHub Pages」→ Run workflow で、ブランチに`develop`を選んで実行（`workflow_dispatch`が用意されている）
+4. `https://tomiyuki03.github.io/T-Scope/`で確認する
+
+### 未対応・注意
+- **配布するログの置き場所は未定**。公開した画面は、ログ未読み込みの状態で表示される。ログを置く場合は、大会データの公開可否の確認と、置き場所（`static/`、外部ストレージ）の決定が要る。`?autoload=`で、URLから自動で読み込める
+- Web版は、ファイル再生のみ。TCP接続（`/proxy`）とサーバ経由のURL読み込み（`/fetch-proxy`）は使えない（元のSimScopeのPages版と同じ）
+- スマホでの表示と、大きなログ（60〜70MBの7z）の読み込み時間・メモリは未確認
+- ログを読み込んだ状態での、再生・ピン・複数ログの同期の動作は、公開用ビルドでは未確認
+- `.github/workflows/pages.yml`の公開は、`release`イベントと手動実行。`release`で公開する場合は、環境の保護ルールで、タグが許可されているかの確認が要る
+- 元のSimScope（shima004、MIT）のライセンス表示（`LICENSE`）は残す
+
+---
+
 ## ブランチ構成の参考
 ```
 main
@@ -327,5 +362,6 @@ main
     └ fix/multi-log-sync-lag       (マージ済み)
     └ chore/remove-old-sync-code   (マージ済み)
     └ style/adjust-colors          (マージ済み)
-    └ feature/activity-markers     (活動中ピン（仮）。PR待ち)
+    └ feature/activity-markers     (マージ済み。活動中ピン（仮）)
+    └ chore/pages-base-path        (GitHub Pagesの公開パスを/T-Scopeに。PR待ち)
 ```

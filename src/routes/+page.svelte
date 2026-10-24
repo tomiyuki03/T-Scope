@@ -32,6 +32,7 @@
     seekToStepLocal,
     setSelectRoute,
   } from "$lib/stores/simulation";
+  import { base } from "$app/paths";
   import { onMount } from "svelte";
   import { get } from "svelte/store";
 
@@ -259,8 +260,8 @@
   {:else}
   <!-- 複数ログモード -->
     <div style="display: flex; width: 100%; height: 100%;">
-      <iframe bind:this={iframe1} src="/?embed=1&primary=1" style="flex: 1; height: 100%; border: none;" title="log1"></iframe>
-      <iframe bind:this={iframe2} src="/?embed=1" style="flex: 1; height: 100%; border: none;" title="log2"></iframe>
+      <iframe bind:this={iframe1} src="{base}/?embed=1&primary=1" style="flex: 1; height: 100%; border: none;" title="log1"></iframe>
+      <iframe bind:this={iframe2} src="{base}/?embed=1" style="flex: 1; height: 100%; border: none;" title="log2"></iframe>
     </div>
   {/if}
 </div>
