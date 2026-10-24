@@ -147,6 +147,35 @@
     return _emojiAtlas;
   }
 
+  // 仮：活動中ピンの色と絵（色だけ。しずく型のSVGをデータURLにして使う）
+  type ActiveKind = "rescue" | "carry" | "clear";
+
+  const ACTIVE_COLOR: Record<ActiveKind, [number, number, number]> = {
+    rescue: [255, 140, 0], // オレンジ（agentColorの救助中と同じ）
+    carry: [255, 200, 60], // 黄色（agentColorの搬送中と同じ）
+    clear: [255, 80, 200], // ピンク（clear-areaの枠と同じ）
+  };
+
+  function pinIcon(rgb: [number, number, number]) {
+    const svg =
+      `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="64" viewBox="0 0 48 64">` +
+      `<path d="M24 62 C24 62 4 38 4 22 A20 20 0 0 1 44 22 C44 38 24 62 24 62 Z" ` +
+      `fill="rgb(${rgb[0]},${rgb[1]},${rgb[2]})" stroke="white" stroke-width="3"/>` +
+      `<circle cx="24" cy="22" r="7" fill="white"/></svg>`;
+    return {
+      url: "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg),
+      width: 48,
+      height: 64,
+      anchorY: 64, // ピンの先端（下端）を、エージェントの位置に合わせる
+    };
+  }
+
+  const PIN_ICON: Record<ActiveKind, ReturnType<typeof pinIcon>> = {
+    rescue: pinIcon(ACTIVE_COLOR.rescue),
+    carry: pinIcon(ACTIVE_COLOR.carry),
+    clear: pinIcon(ACTIVE_COLOR.clear),
+  };
+
   function agentColor(
     urn: number,
     action?: AgentAction,
@@ -564,6 +593,21 @@
       (a) => a.urn !== EntityURN.CIVILIAN,
     );
 
+     // 仮：活動中のエージェントと、その活動の種類（ピン表示用）
+     const activeAgents = rescueAgents.flatMap((a) => {
+      const act = actions.get(a.id)?.urn;
+      let kind: ActiveKind | null = null;
+      if (a.urn === EntityURN.FIRE_BRIGADE && act === CommandURN.AK_RESCUE){
+        kind = 'rescue';
+      } else if (carrierMap.has(a.id)){
+        kind = "carry";
+      }else if (a.urn === EntityURN.POLICE_FORCE && (act === CommandURN.AK_CLEAR || act === CommandURN.AK_CLEAR_AREA)){
+        kind = "clear";
+      }
+      return kind ? [{ agent: a, kind}]: [];
+     })
+
+
     if (displayMode === "emoji") {
       const { atlas, mapping } = getEmojiAtlas();
       const rescuingFireBrigades = rescueAgents.filter(
@@ -680,6 +724,24 @@
         lineWidthMinPixels: 1,
         pickable: false,
         updateTriggers: { getRadius: [selId] },
+      }),
+
+      // 仮：活動中のエージェントの上に出すピン
+      new IconLayer({
+        id: "active-pins",
+        data: hidden.has("rescueTargets") || alwaysFollow ? [] : activeAgents,
+        getPosition: (d: { agent: HumanEntity; kind: ActiveKind }) => [
+          d.agent.x,
+          d.agent.y,
+        ],
+        getIcon: (d: { agent: HumanEntity; kind: ActiveKind }) =>
+          PIN_ICON[d.kind],
+        getSize: 28,
+        sizeUnits: "pixels",
+        pickable: true,
+        onClick: (info: PickingInfo) => selectEntity(
+            (info.object as { agent: HumanEntity } | undefined)?.agent.id ?? null,
+        ),
       }),
     ];
   }
