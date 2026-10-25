@@ -349,6 +349,20 @@ T-Scope（RoboCup Rescue Simulation ビューワ、[shima004/SimScope](https://g
 
 ---
 
+## 11. アプリ内のGitHubリンクを、T-Scopeに変更
+
+**ブランチ**: `chore/own-github-link`
+
+### やったこと
+- `ControlPanel.svelte`のフッターにある「GitHub」リンクが、fork元（`https://github.com/shima004/SimScope`）のままだったので、`https://github.com/tomiyuki03/T-Scope`に変更した
+
+### 未対応・注意
+- READMEのWeb版URL（`shima004.github.io/SimScope`）、Dockerイメージ名（`ghcr.io/shima004/simscope`）、`package.json`の`docker:*`、`k8s/deployment.yaml`は、fork元のまま。Pagesの公開後に、READMEを直す予定
+- `LICENSE`の著作権表示（`shima004`）は、MITライセンスの条件なので、変更しない
+- リポジトリのAbout欄のWebsite（`shima004.github.io/SimScope/`）は、GitHubの設定画面から手動で変更する（コードでは変えられない）
+
+---
+
 ## ブランチ構成の参考
 ```
 main
@@ -363,5 +377,6 @@ main
     └ chore/remove-old-sync-code   (マージ済み)
     └ style/adjust-colors          (マージ済み)
     └ feature/activity-markers     (マージ済み。活動中ピン（仮）)
-    └ chore/pages-base-path        (GitHub Pagesの公開パスを/T-Scopeに。PR待ち)
+    └ chore/pages-base-path        (マージ済み。GitHub Pagesの公開パスを/T-Scopeに)
+    └ chore/own-github-link        (アプリ内のGitHubリンクをT-Scopeに。PR待ち)
 ```
