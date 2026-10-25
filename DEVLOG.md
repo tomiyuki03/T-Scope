@@ -349,6 +349,39 @@ T-Scope（RoboCup Rescue Simulation ビューワ、[shima004/SimScope](https://g
 
 ---
 
+## 11. アプリ内のGitHubリンクを、T-Scopeに変更
+
+**ブランチ**: `chore/own-github-link`（PRは出さず、`docs/readme-wip`に取り込んで、READMEの修正と同じPRにした）
+
+### やったこと
+- `ControlPanel.svelte`のフッターにある「GitHub」リンクが、fork元（`https://github.com/shima004/SimScope`）のままだったので、`https://github.com/tomiyuki03/T-Scope`に変更した
+
+### 未対応・注意
+- READMEのWeb版URL（`shima004.github.io/SimScope`）、Dockerイメージ名（`ghcr.io/shima004/simscope`）、`package.json`の`docker:*`、`k8s/deployment.yaml`は、fork元のまま。Pagesの公開後に、READMEを直す予定
+- `LICENSE`の著作権表示（`shima004`）は、MITライセンスの条件なので、変更しない
+- リポジトリのAbout欄のWebsite（`shima004.github.io/SimScope/`）は、GitHubの設定画面から手動で変更する（コードでは変えられない）
+
+---
+
+## 12. READMEを「編集中」に変更（公開前の暫定）
+
+**ブランチ**: `docs/readme-wip`
+
+### 目的
+公開前に、README（`README.md`／`README.en.md`）に、fork元（SimScope）のURL・画像・Dockerのコマンドなどが、そのまま書かれている状態を解消する。内容は暫定で、整い次第、書き直す。
+
+### やったこと
+- `README.md`／`README.en.md`を、「編集中」の表示、1行の説明、謝辞・ライセンス（SimScope（shima004、MIT）を、作者の許可を得てforkして拡張したもの。`LICENSE`への案内）だけの最小の内容にした
+- 元のREADMEの内容は、`main`と、Gitの履歴に残っている
+- アプリ内の「GitHub」リンクの変更（11章）を、同じPRにまとめた
+
+### 未対応・注意
+- **リポジトリのトップに表示されるREADMEは、既定のブランチ（`main`）のもの**。`develop`のREADMEを変えても、トップの表示は変わらない。トップを「編集中」にするには、GitHubの設定で、既定のブランチを`develop`にする（Settings → General → Default branch）。`main`は変更しない
+- READMEの本文（使い方、公開URL、ライセンス、制約）は、Pagesの公開後に書き直す
+- 元のREADMEの画像（`github.com/user-attachments/...`）は、fork元の投稿のもの。T-Scope用の画像は、まだ無い
+
+---
+
 ## ブランチ構成の参考
 ```
 main
@@ -363,5 +396,7 @@ main
     └ chore/remove-old-sync-code   (マージ済み)
     └ style/adjust-colors          (マージ済み)
     └ feature/activity-markers     (マージ済み。活動中ピン（仮）)
-    └ chore/pages-base-path        (GitHub Pagesの公開パスを/T-Scopeに。PR待ち)
+    └ chore/pages-base-path        (マージ済み。GitHub Pagesの公開パスを/T-Scopeに)
+    └ chore/own-github-link        (アプリ内のGitHubリンクをT-Scopeに。docs/readme-wipに取り込み、PRは出さない)
+    └ docs/readme-wip              (READMEを編集中に＋GitHubリンク。PR待ち)
 ```

@@ -517,7 +517,7 @@
   <div class="footer-row">
     <a
       class="github-link"
-      href="https://github.com/shima004/SimScope"
+      href="https://github.com/tomiyuki03/T-Scope"
       target="_blank"
       rel="noopener noreferrer"
     >
