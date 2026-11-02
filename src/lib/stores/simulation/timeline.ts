@@ -116,3 +116,26 @@ export function computeNextSnapshot(nextStep: number): Map<number, SimEntity> {
   if (changes) applyChanges(snapshot, changes);
   return snapshot;
 }
+
+/// Compute the carrying destinations for each agent at a given step
+// 戻り値は表（C++ の unordered_map<int,int>）: 搬送中の救急隊のID → 搬送先の避難所のノードID
+// 搬送中でない隊は表に入らない
+export function getCarryingDestinations(step: number): Map<number, number> {
+  // 指定ステップの時点で搬送中の隊を求める（simEvents は時間順なので、先のステップに入ったら打ち切る）
+  const carrying = new Set<number>();
+  for (const e of get(simEvents)) {
+    if (e.step > step) break;
+    if (e.type === "carry_start") carrying.add(e.agentId);
+    else if (e.type === "carry_end") carrying.delete(e.agentId);
+  }
+
+  // 搬送中の隊ごとに、経路（path）の最後のノードを搬送先として表に入れる
+  // 拾った次のステップで搬送先が決まり、終わるまで変わらない（サンプルログで確認済み）
+  const action = getCommandsAtStep(step);
+  const result = new Map<number, number>();
+  for (const agentId of carrying) {
+    const path = action.get(agentId)?.path;
+    if (path && path.length > 0) result.set(agentId, path[path.length -1 ]);
+  }
+  return result;
+}
