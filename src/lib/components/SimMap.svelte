@@ -15,9 +15,11 @@
     agentReceivedComms,
     agentVisibleIds,
     animatedEntities,
+    currentStep,
     detailViewport,
     entities,
     focusPoint,
+    getCarryingDestinations,
     hiddenChannels,
     hiddenLayers,
     inspectedId,
@@ -28,6 +30,7 @@
     perceptionViewMode,
     pinnedAgentId,
     selectedId,
+    simEvents,
   } from "$lib/stores/simulation";
   import type { OrthographicViewState, PickingInfo } from "@deck.gl/core";
   import { Deck, OrthographicView } from "@deck.gl/core";
@@ -820,10 +823,67 @@
   let cachedStaticLayers: ReturnType<typeof buildStaticLayers> = [];
   let cachedAgentLayers: ReturnType<typeof buildAgentLayers> = [];
   let cachedViewportLayer: unknown[] = [];
+  // 搬送先の線のレイヤー（buildCarryLine の結果。cachedViewportLayer と同じ使い方）
+  let cachedCarryLine: unknown[] = [];
+
+  // 搬送先の表のキャッシュ。描画は補間で1秒に何十回も走るので、
+  // 全イベントを走査する getCarryingDestinations は、ステップが変わったときだけ呼ぶ
+  // （C++ なら static 変数に、前回の入力と前回の結果を持っておくのと同じ）
+  let carryDestStep = -1; // 前回、表を作ったステップ
+  let carryDestEvents: unknown = null; // 前回見たイベント一覧（別ログを読み込んだ検知用。!== はポインタ比較）
+  let carryDest = new Map<number, number>(); // 搬送先の表: 救急隊ID → 避難所のノードID
+
+  // 選択中の救急隊が搬送中なら、その隊から搬送先（避難所）までの線を返す
+  // emap: 隊の「今の位置」を引く表（補間された位置が入っている）
+  // selId: 選択中のID。左の全体画面は suppressHighlight なので displaySelId ではなく元の selId を渡す
+  function buildCarryLine(emap: Map<number, SimEntity>, selId: number | null) {
+    // 詳細画面側（alwaysFollow）と、何も選んでいないときは、線なし
+    if (alwaysFollow || selId === null) return [];
+
+    // 前回と同じステップ・同じログなら、前回の表を使い回す
+    const step = get(currentStep);
+    const events = get(simEvents);
+    if (step !== carryDestStep || events !== carryDestEvents) {
+      carryDest = getCarryingDestinations(step);
+      carryDestStep = step;
+      carryDestEvents = events;
+    }
+
+    const destId = carryDest.get(selId); // 搬送中でなければ undefined（find が end() を返すのと同じ）
+    const agent = emap.get(selId) as HumanEntity | undefined; // 隊は動くので emap（補間位置）から取る
+    // 避難所は動かないので、ステップごとの状態（entities）から取る
+    const dest = destId === undefined ? undefined : get(entities).get(destId);
+    // どれか無い、または座標（x）を持たない型なら、線なし
+    if (!agent || !dest || !("x" in dest)) return [];
+
+    return [
+      new LineLayer({
+        id: "carry-destination-line",
+        // 線は1本だけなので、要素が1つの配列を渡す
+        data: [{ source: [agent.x, agent.y], target: [dest.x, dest.y] }],
+        // 「データから始点・終点を取り出す関数」を渡す（C++ のラムダ）
+        getSourcePosition: (d: { source: [number, number] }) => d.source,
+        getTargetPosition: (d: { target: [number, number] }) => d.target,
+        // [...a, 230] は、配列 a の後ろに 230（透明度）を足した配列。色は活動ピンの「搬送」と同じ
+        getColor: [...ACTIVE_COLOR.carry, 230] as [number, number, number, number],
+        getWidth: 300,
+        widthMinPixels: 3, // 拡大・縮小しても、画面上の太さがこの範囲に収まる
+        widthMaxPixels: 5,
+      }),
+    ];
+  }
 
   function flushLayers() {
     if (!deck) return;
-    deck.setProps({ layers: [...cachedStaticLayers, ...cachedAgentLayers, ...cachedViewportLayer] });
+    deck.setProps({
+      // 後ろに並べたものほど上に描かれる（隊の点の上、視野枠の下に線が重なる）
+      layers: [
+        ...cachedStaticLayers,
+        ...cachedAgentLayers,
+        ...cachedCarryLine,
+        ...cachedViewportLayer,
+      ],
+    });
   }
 
   // 静的レイヤー: ステップ切替・選択変更・設定変更時のみ再構築
@@ -909,6 +969,8 @@
         hidden, 
         displayMode,
       );
+      // 搬送先の線も作り直す（隊が動くたびに呼ばれるので、線の隊側の端が隊について動く）
+      cachedCarryLine = buildCarryLine(emap, selId);
       flushLayers();
     },
   );
