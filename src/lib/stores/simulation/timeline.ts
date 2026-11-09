@@ -129,12 +129,12 @@ export function getCarryingDestinations(step: number): Map<number, number> {
     else if (e.type === "carry_end") carrying.delete(e.agentId);
   }
 
-  // 搬送中の隊ごとに、経路（path）の最後のノードを搬送先として表に入れる
-  // 拾った次のステップで搬送先が決まり、終わるまで変わらない（サンプルログで確認済み）
+  // 搬送中の救急隊ごとに、経路（path）の最後のノードを搬送先として表に入れる
+  // 拾った次のステップで搬送先が決まり、終わるまで変わらない（サンプルログで確認済み）→ 拾ったステップでは次のステップを参照して搬送先を示す
   const action = getCommandsAtStep(step);
   const result = new Map<number, number>();
   for (const agentId of carrying) {
-    const path = action.get(agentId)?.path;
+    const path = action.get(agentId)?.path ?? getCommandsAtStep(step + 1).get(agentId)?.path;
     if (path && path.length > 0) result.set(agentId, path[path.length -1 ]);
   }
   return result;
