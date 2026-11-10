@@ -18,6 +18,10 @@ import {
   simEvents,
   type AgentAction,
   type SimEvent,
+  activityEpisodes,
+  type ActivityEpisode,
+  type ActivityKind,
+  type ActivityPhase,
 } from "./state";
 
 type StepRoute = (step: number) => boolean;
@@ -148,3 +152,54 @@ export function getCarryingDestinations(step: number): Map<number, number> {
   }
   return result;
 }
+
+// 向かい始めのステップを求める。タスクが始まるステップから、さかのぼる
+function findApproachStart(agentId: number, taskStep: number): number {
+  const prev = getCommandsAtStep(taskStep - 1).get(agentId);
+  //直前が移動（AK_MOVE）でなければ、向かう段階は無い
+  if (prev?.urn !== CommandURN.AK_MOVE || !prev.path?.length) return taskStep;
+  const dest = prev.path[prev.path.length - 1]; //行き先
+  let s = taskStep - 1;
+  while (s >= 1){
+    const a = getCommandsAtStep(s).get(agentId);
+    // 移動でなくなった、または行き先が変わったら、そこで止める
+    if (a?.urn !== CommandURN.AK_MOVE || !a.path?.length || a.path[a.path.length - 1] !== dest) break;
+    s--;
+  }
+  return s + 1;
+}
+
+export function computeActivityEpisodes(): void {
+  const events = get(simEvents);
+  const maxS = get(maxStep);
+  const result: ActivityEpisode[] = [];
+  for (const e of events) {
+    //開始を探す
+    if (e.type !== "rescue_start" && e.type !== "carry_start") continue;
+    const kind: ActivityKind = e.type === "rescue_start" ? "rescue" : "carry";
+    const endType = kind === "rescue" ? "rescue_end" : "carry_end";
+    // 同じ隊・同じ対象の、終了イベントを探す（無ければ最後のステップ）
+    const end = events.find((x) => x.type === endType && x.agentId === e.agentId && x.targetId === e.targetId && x.step >= e.step)?.step ?? maxS;
+
+    result.push({
+      agentId: e.agentId,
+      kind,
+      approachStart: findApproachStart(e.agentId, e.step),
+      taskStart: e.step,
+      end,
+      targetId: e.targetId,
+    });
+  }
+  activityEpisodes.set(result);
+  }
+
+  export function getActivityPhases(step: number): Map<number, {kind: ActivityKind; phase: ActivityPhase}> {
+    const result = new Map<number,  { kind: ActivityKind; phase: ActivityPhase }>();
+    for (const ep of get(activityEpisodes)) {
+    if (step < ep.approachStart || step > ep.end) continue;
+    const phase: ActivityPhase = step < ep.taskStart ? "approach" : "working";
+    // 同じ隊に複数あるときは、作業中を優先する
+    if (phase === "working" || !result.has(ep.agentId)) result.set(ep.agentId, { kind: ep.kind, phase });
+  }
+  return result;
+  }

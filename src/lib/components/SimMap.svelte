@@ -20,6 +20,7 @@
     entities,
     focusPoint,
     getCarryingDestinations,
+    getActivityPhases,
     hiddenChannels,
     hiddenLayers,
     inspectedId,
@@ -111,7 +112,7 @@
 
   type IconMapping = Record<
     string,
-    { x: number; y: number; width: number; height: number; mask: boolean }
+    { x: number; y: number; width: number; height: number; mask: boolean; anchorX?: number; anchorY?: number }
   >;
   interface EmojiAtlas {
     atlas: string;
@@ -159,25 +160,84 @@
     clear: [255, 80, 200], // ピンク（clear-areaの枠と同じ）
   };
 
-  function pinIcon(rgb: [number, number, number]) {
-    const svg =
-      `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="64" viewBox="0 0 48 64">` +
-      `<path d="M24 62 C24 62 4 38 4 22 A20 20 0 0 1 44 22 C44 38 24 62 24 62 Z" ` +
-      `fill="rgb(${rgb[0]},${rgb[1]},${rgb[2]})" stroke="white" stroke-width="3"/>` +
-      `<circle cx="24" cy="22" r="7" fill="white"/></svg>`;
-    return {
-      url: "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg),
-      width: 48,
-      height: 64,
-      anchorY: 64, // ピンの先端（下端）を、エージェントの位置に合わせる
-    };
+  //吹き出しの種類
+  type BubbleKey = "amb-approach" | "amb-carry" | "fire-approach" | "fire-dig" | "police-clear";
+
+  interface BubbleDef {
+    glyphs: string[];                       // 吹き出しの中に並べる絵文字
+    color: [number, number, number];        // 枠と尻尾の色
+    dashed: boolean;                        // 破線か(破線は移動中)
   }
 
-  const PIN_ICON: Record<ActiveKind, ReturnType<typeof pinIcon>> = {
-    rescue: pinIcon(ACTIVE_COLOR.rescue),
-    carry: pinIcon(ACTIVE_COLOR.carry),
-    clear: pinIcon(ACTIVE_COLOR.clear),
-  };
+  //絵文字の種類
+  const BUBBLE_DEF: Record<BubbleKey, BubbleDef> = {
+    "amb-approach":  { glyphs: ["🚑", "💨"],     color: ACTIVE_COLOR.carry,  dashed: true  },
+    "amb-carry":     { glyphs: ["🚑", "🤕"],     color: ACTIVE_COLOR.carry,  dashed: false },
+    "fire-approach": { glyphs: ["🚒", "💨"],     color: ACTIVE_COLOR.rescue, dashed: true  },
+    "fire-dig":      { glyphs: ["🚒", "\u26CF\uFE0F"], color: ACTIVE_COLOR.rescue, dashed: false },
+    "police-clear":  { glyphs: ["🚜"],           color: ACTIVE_COLOR.clear,  dashed: false },
+  }
+
+  let _bubbleAtlas: EmojiAtlas | null = null;
+
+  function getBubbleAtlas(): EmojiAtlas {
+    if (_bubbleAtlas) return _bubbleAtlas;
+    const G = 40;     // 絵文字1つの大きさ（px）
+    const PAD = 8;    // 吹き出しの内側の余白
+    const TAIL = 14;  // 尻尾の高さ
+    const H = G + PAD * 2 + TAIL;     // 画像全体の高さ
+    const bodyH = H - TAIL;           // 吹き出しの本体の高さ
+    const keys = Object.keys(BUBBLE_DEF) as BubbleKey[];
+    const widths = keys.map((k) => BUBBLE_DEF[k].glyphs.length * G + PAD * 2);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = widths.reduce((a, b) => a + b, 0);
+    canvas.height = H;
+    const ctx = canvas.getContext("2d")!;
+    ctx.font = `${G * 0.82}px ${EMOJI_FONT}`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    const mapping: IconMapping = {};
+    let x0 = 0;
+    keys.forEach((key, i) => {
+      const def = BUBBLE_DEF[key];
+      const w = widths[i];
+      const [r, g, b] = def.color;
+      const css = `rgb(${r},${g},${b})`;
+
+      // 本体（白い角丸の四角に、色つきの枠）
+      ctx.beginPath();
+      ctx.roundRect(x0 + 2, 2, w - 4, bodyH - 4, 10);
+      ctx.fillStyle = "white";
+      ctx.fill();
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = css;
+      ctx.setLineDash(def.dashed ? [8, 5] : []);
+      ctx.stroke();
+
+      // 尻尾（下向きの三角）
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.moveTo(x0 + w / 2 - 8, bodyH - 3);
+      ctx.lineTo(x0 + w / 2 + 8, bodyH - 3);
+      ctx.lineTo(x0 + w / 2, H - 1);
+      ctx.closePath();
+      ctx.fillStyle = css;
+      ctx.fill();
+
+      // 絵文字
+      def.glyphs.forEach((glyph, j) => {
+        ctx.fillText(glyph, x0 + PAD + G * j + G / 2, PAD + G / 2);
+      });
+
+      mapping[key] = { x: x0, y: 0, width: w, height: H, anchorX: w / 2, anchorY: H, mask: false };
+      x0 += w;
+    });
+    _bubbleAtlas = { atlas: canvas.toDataURL(), mapping };
+    return _bubbleAtlas;
+  }
+
 
   function agentColor(
     urn: number,
@@ -596,18 +656,22 @@
       (a) => a.urn !== EntityURN.CIVILIAN,
     );
 
-     // 仮：活動中のエージェントと、その活動の種類（ピン表示用）
+          // 仮：活動中のエージェントと、吹き出しの種類
+     const phases = getActivityPhases(get(currentStep));
      const activeAgents = rescueAgents.flatMap((a) => {
       const act = actions.get(a.id)?.urn;
-      let kind: ActiveKind | null = null;
-      if (a.urn === EntityURN.FIRE_BRIGADE && act === CommandURN.AK_RESCUE){
-        kind = 'rescue';
-      } else if (carrierMap.has(a.id)){
-        kind = "carry";
-      }else if (a.urn === EntityURN.POLICE_FORCE && (act === CommandURN.AK_CLEAR || act === CommandURN.AK_CLEAR_AREA)){
-        kind = "clear";
+      const ph = phases.get(a.id);
+      let key: BubbleKey | null = null;
+      if (ph?.phase === "approach") {
+        key = ph.kind === "rescue" ? "fire-approach" : "amb-approach";
+      } else if (a.urn === EntityURN.FIRE_BRIGADE && act === CommandURN.AK_RESCUE) {
+        key = "fire-dig";
+      } else if (carrierMap.has(a.id)) {
+        key = "amb-carry";
+      } else if (a.urn === EntityURN.POLICE_FORCE && (act === CommandURN.AK_CLEAR || act === CommandURN.AK_CLEAR_AREA)) {
+        key = "police-clear";
       }
-      return kind ? [{ agent: a, kind}]: [];
+      return key ? [{ agent: a, key }] : [];
      })
 
 
@@ -711,6 +775,7 @@
           getFillColor: [actions, perceivedIds],
         },
       });
+    const bubbleAtlas = getBubbleAtlas();
     return [
       circleLayer("civilians-circle", civilians),
       circleLayer("rescue-agents-circle", rescueAgents),
@@ -729,18 +794,16 @@
         updateTriggers: { getRadius: [selId] },
       }),
 
-      // 仮：活動中のエージェントの上に出すピン
+      // 仮：活動中のエージェントの上に出すアイコン
       new IconLayer({
         id: "active-pins",
         data: hidden.has("rescueTargets") || alwaysFollow ? [] : activeAgents,
-        getPosition: (d: { agent: HumanEntity; kind: ActiveKind }) => [
-          d.agent.x,
-          d.agent.y,
-        ],
-        getIcon: (d: { agent: HumanEntity; kind: ActiveKind }) =>
-          PIN_ICON[d.kind],
-        getSize: 28,
+        getPosition: (d: { agent: HumanEntity; key: BubbleKey }) => [d.agent.x, d.agent.y],
+        getIcon: (d: { agent: HumanEntity; key: BubbleKey }) => d.key,
+        getSize: (d: { agent: HumanEntity; key: BubbleKey }) => (d.key === "police-clear" ? 30 : 40),
         sizeUnits: "pixels",
+        iconAtlas: bubbleAtlas.atlas,
+        iconMapping: bubbleAtlas.mapping,
         pickable: true,
         onClick: (info: PickingInfo) => selectEntity(
             (info.object as { agent: HumanEntity } | undefined)?.agent.id ?? null,

@@ -9,7 +9,8 @@ import PerceptionWorker from "./worker?worker";
 import { sim } from "./data";
 import { handleLogFrame } from "./frame";
 import { resetSimulationState } from "./reset";
-import { computeSimEvents, rebuildState } from "./timeline";
+import { computeActivityEpisodes, computeSimEvents, rebuildState } from "./timeline";
+
 import {
   currentStep,
   downloadProgress,
@@ -22,6 +23,7 @@ import {
   parseProgress,
   type CommMessage,
 } from "./state";
+
 
 async function loadRaw(raw: ArrayBuffer, filename = "archive.7z") {
   extractProgress.set(0);
@@ -160,6 +162,7 @@ function finishFileLoad() {
   currentStep.set(0);
   rebuildState(0);
   computeSimEvents();
+  computeActivityEpisodes();
 }
 
 function parsePerceptionEntries(
