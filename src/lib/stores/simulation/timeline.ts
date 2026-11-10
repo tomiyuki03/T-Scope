@@ -69,15 +69,24 @@ export function computeSimEvents(): void {
   const maxS = get(maxStep);
   const ambulanceCarrying = new Map<number, number>();
 
+  const snapshot = new Map<number, SimEntity>(
+    Array.from(sim.baseEntities.entries()).map(([k, v]) => [k, {...v}])
+  );
+
   for (let step = 1; step <= maxS; step++) {
+    const changes = sim.timeline.get(step);
+    if(changes) applyChanges(snapshot, changes);
     const cur = sim.commandTimeline.get(step);
     const prev = sim.commandTimeline.get(step - 1);
 
     if (cur) {
       for (const [agentId, action] of cur) {
         if (action.urn === CommandURN.AK_LOAD && action.target !== undefined) {
-          ambulanceCarrying.set(agentId, action.target);
-          result.push({ step, type: "carry_start", agentId, targetId: action.target });
+          const civilian = snapshot.get(action.target);
+          if(civilian && "position" in civilian && civilian.position === agentId){
+            ambulanceCarrying.set(agentId, action.target);
+            result.push({ step, type: "carry_start", agentId, targetId: action.target });
+          }
         } else if (action.urn === CommandURN.AK_UNLOAD) {
           const civilianId = ambulanceCarrying.get(agentId);
           if (civilianId !== undefined) {
