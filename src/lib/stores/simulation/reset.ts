@@ -1,5 +1,6 @@
 import { sim } from "./data";
 import {
+  activityEpisodes,
   agentActions,
   agentCommStats,
   agentReceivedComms,
@@ -46,4 +47,5 @@ export function resetSimulationState() {
   pinnedAgentId.set(null);
   inspectedId.set(null);
   simEvents.set([]);
+  activityEpisodes.set([]);
 }

@@ -26,6 +26,21 @@ export interface SimEvent {
   targetId: number;
 }
 
+export type ActivityPhase = "approach" | "working";//向かってるのか作業中か
+
+export type ActivityKind = "rescue" | "carry";
+
+export interface ActivityEpisode {
+  agentId: number;
+  kind: ActivityKind;     // rescue = 消防隊の救助、carry = 救急隊の搬送
+  approachStart: number;  // 向かい始めのステップ
+  taskStart: number;      // タスクが始まるステップ
+  end: number;            // タスクが終わるステップ
+  targetId: number;       // 対象（市民など）
+}
+
+export const activityEpisodes = writable<ActivityEpisode[]>([]);
+
 // ── Source state ──────────────────────────────────────────────────────────────
 
 export const mode = writable<Mode>("idle");
