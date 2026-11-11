@@ -1,12 +1,16 @@
 <script lang="ts">
   import favicon from "$lib/assets/favicon.svg";
   import { initLocale, locale, t } from "$lib/i18n";
+  import { initTheme } from "$lib/theme";
   import { onMount } from "svelte";
   import "../app.css";
 
   let { children } = $props();
 
-  onMount(initLocale);
+    onMount(() => {
+    initLocale();
+    initTheme();
+  });
 
   $effect(() => {
     if (typeof document !== "undefined") {

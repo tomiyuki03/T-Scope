@@ -543,6 +543,38 @@ T-Scope（RoboCup Rescue Simulation ビューワ、[shima004/SimScope](https://g
 
 ---
 
+## 17. ダークモードの切り替えボタン（テーマの切り替え）と、言語の同期
+
+**ブランチ**: `feature/dark-mode-toggle`
+
+### 目的
+工科展後の改良を、先生に見せるとき、「色を変えた」ではなく、**「明るい配色と暗い配色を、切り替えられるようにした」**と説明できるようにする。
+
+### 背景
+PR #9（`style/adjust-colors`）で、配色をCSS変数にまとめ、明るい基調を標準にした。従来の暗い配色は、`app.css`の`:root[data-theme="dark"]`に残してあったが、**`data-theme`を切り替える操作が無かった**。
+
+### やったこと
+- **新規**`src/lib/theme.ts`：`theme`ストア、`initTheme`（保存した値を読む。別のウィンドウで切り替えたら、`storage`イベントで追従する）、`setTheme`（`<html data-theme>`を書き換えて、`localStorage`に保存する）。保存名は`tscope.theme`。既定は明るい配色。
+- `+layout.svelte`：`onMount`で、`initLocale`と一緒に`initTheme`を呼ぶ。
+- `ControlPanel.svelte`：☀／🌙の切り替えを追加した。
+  - 下の行が横に長くなり、右端の`JA`と🌙が、はみ出して隠れた（`.lang-switch`が`overflow: hidden`のため）。そこで、**1段目に「GitHub、言語、テーマ」、2段目に「複数ログ（2分割のときは同期ON／OFF）」**と、2段に分けた。`.footer-row`に`flex-wrap: wrap`も足した。
+- `i18n.ts`：**言語の切り替えが、複数ログの別の画面に届かなかった**（保存するだけで、他のウィンドウへ知らせる処理が無かった）。`initLocale`に、`storage`イベントの受け取りを足して、言語も追従するようにした。保存名`simscope.locale`は、保存済みの設定を失わないよう、変えていない。
+
+### 確認
+- コンソールで`data-theme="dark"`を付けて、パネル、地図の背景、建物と道路（灰色）、吹き出しが、暗い背景で読めることを確認した（`rescue-A`）。
+- 複数ログ（2分割）で、**テーマも言語も、どの画面から切り替えても、親と2つの画面が、そろって切り替わる**（両方向）。
+- 切り替えた値は、`localStorage`に保存され、読み直しても残る。
+- 型チェック（`npm run check`）は、新しいエラー・警告なし（既存のエラー2・警告2のみ）
+
+### 未対応・注意
+- **地図（deck.gl）の色は、CSS変数ではなく、明るい背景向けに調整した値のまま**。暗い背景では、隊の色（`urns.ts`、`channelColors.ts`を、明るい背景向けに濃くした）のコントラストが落ちるものがあるかもしれない。必要なら、テーマごとの色を足す。
+- `InfoPanel`、`TimelinePanel`など、色の直書き（16進数）が残るパネルは、暗いテーマでの見た目を、すべては確認していない。
+- 読み込み時に、保存した値が暗い配色でも、一瞬、明るい画面が出る（`onMount`が、最初の描画のあとに走るため）。`app.html`に初期化の1行を足せば、直せる。
+- 既定は明るい配色（OSの設定には従わない）。
+- `localStorage`のキー`simscope.locale`と、タブのタイトル`SimScope`は、フォーク元の名前のまま（別の作業で、T-Scopeにそろえる）。
+
+---
+
 ## ブランチ構成の参考
 ```
 main
@@ -563,5 +595,6 @@ main
     └ feature/carry-destination-line (マージ済み。搬送先の線。見た目は要修正)
     └ fix/carry-line-load-step     (マージ済み。搬送先の線：拾うステップで線が消える問題の修正)
     └ fix/carry-start-failed-load  (マージ済み。搬送中の判定：拾えなかったAK_LOADを搬送開始にしない)
-    └ feature/task-target-bubble   (活動ピンを吹き出し＋絵文字に。「向かう」段階を追加)
+    └ feature/task-target-bubble   (マージ済み。活動ピンを吹き出し＋絵文字に。「向かう」段階を追加)
+    └ feature/dark-mode-toggle     (ダークモードの切り替えボタン。言語の同期)
 ```
