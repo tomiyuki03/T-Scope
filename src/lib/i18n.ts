@@ -316,6 +316,11 @@ export function initLocale() {
     ? queryLocale
     : storedLocale ?? browserLocale;
   applyLocale(nextLocale, isLocale(queryLocale));
+
+  // 別のウィンドウ（複数ログの iframe）で切り替えたとき、こちらも追従する
+  window.addEventListener("storage", (e) => {
+    if (e.key === STORAGE_KEY && isLocale(e.newValue)) applyLocale(e.newValue, false);
+  });
 }
 
 export function setLocale(nextLocale: Locale) {

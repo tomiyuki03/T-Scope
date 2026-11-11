@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { SimEntity } from "$lib/rcrs/types";
   import { locale, setLocale, t } from "$lib/i18n";
+  import { setTheme, theme } from "$lib/theme";
   import {
     agentActions,
     animatedEntities,
@@ -535,8 +536,29 @@
       </svg>
       GitHub
     </a>
-    
-    <!-- 複数画面追加　-->
+
+    <!-- 言語切り替え　-->
+    <div class="lang-switch" aria-label={$t("common.language")}>
+      <button
+        class:active={$locale === "en"}
+        onclick={() => setLocale("en")}
+        aria-pressed={$locale === "en"}>{$t("language.en")}</button
+      >
+      <button
+        class:active={$locale === "ja"}
+        onclick={() => setLocale("ja")}
+        aria-pressed={$locale === "ja"}>{$t("language.ja")}</button
+      >
+    </div>
+
+    <!-- テーマ切り替え　-->
+    <div class="lang-switch" aria-label="Theme">
+      <button class:active={$theme === "light"} onclick={() =>
+      setTheme("light")} aria-pressed={$theme === "light"}>☀️</button>
+      <button class:active={$theme === "dark"} onclick={() => setTheme("dark")} aria-pressed={$theme === "dark"}>🌙</button>
+    </div>
+  </div>
+  <!-- 複数画面追加　-->
     {#if !_q.has("embed")}
     <button 
       class = "btn follow"
@@ -551,20 +573,6 @@
       onclick={() => window.parent.postMessage({ type: "tscope:toggleSync" }, "*")}
       >{$multiLogSync ? "同期ON" : "同期OFF"}</button>
     {/if}
-
-    <div class="lang-switch" aria-label={$t("common.language")}>
-      <button
-        class:active={$locale === "en"}
-        onclick={() => setLocale("en")}
-        aria-pressed={$locale === "en"}>{$t("language.en")}</button
-      >
-      <button
-        class:active={$locale === "ja"}
-        onclick={() => setLocale("ja")}
-        aria-pressed={$locale === "ja"}>{$t("language.ja")}</button
-      >
-    </div>
-  </div>
 </div>
 
 <!-- Kernel config overlay -->
@@ -1047,6 +1055,7 @@
 
   .footer-row {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
