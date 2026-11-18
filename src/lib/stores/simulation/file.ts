@@ -9,7 +9,7 @@ import PerceptionWorker from "./worker?worker";
 import { sim } from "./data";
 import { handleLogFrame } from "./frame";
 import { resetSimulationState } from "./reset";
-import { computeActivityEpisodes, computeSimEvents, rebuildState } from "./timeline";
+import { computeActivityEpisodes, computeMaxBuriedness, computeSimEvents, rebuildState } from "./timeline";
 
 import {
   currentStep,
@@ -163,6 +163,7 @@ function finishFileLoad() {
   rebuildState(0);
   computeSimEvents();
   computeActivityEpisodes();
+  computeMaxBuriedness();
 }
 
 function parsePerceptionEntries(

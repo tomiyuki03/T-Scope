@@ -1,6 +1,7 @@
 import { sim } from "./data";
 import {
   activityEpisodes,
+  maxBuriedness,
   agentActions,
   agentCommStats,
   agentReceivedComms,
@@ -47,5 +48,6 @@ export function resetSimulationState() {
   pinnedAgentId.set(null);
   inspectedId.set(null);
   simEvents.set([]);
+  maxBuriedness.set(0);
   activityEpisodes.set([]);
 }

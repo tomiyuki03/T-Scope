@@ -58,6 +58,7 @@ export const entities = writable<Map<number, SimEntity>>(new Map());
 export const animatedEntities = writable<Map<number, SimEntity>>(new Map());
 export const currentStep = writable(0);
 export const maxStep = writable(0);
+export const maxBuriedness = writable<number>(0);
 
 
 const _selectedId = writable<number | null>(null);

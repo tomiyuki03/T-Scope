@@ -1,6 +1,6 @@
 import { applyChanges } from "$lib/rcrs/decoder";
-import type { SimEntity } from "$lib/rcrs/types";
-import { CommandURN } from "$lib/rcrs/urns";
+import type { SimEntity, HumanEntity } from "$lib/rcrs/types";
+import { CommandURN, EntityURN } from "$lib/rcrs/urns";
 import { get } from "svelte/store";
 import { sim } from "./data";
 import { updatePerceptionState } from "./perception";
@@ -16,6 +16,7 @@ import {
   mode,
   selectedId,
   simEvents,
+  maxBuriedness,
   type AgentAction,
   type SimEvent,
   activityEpisodes,
@@ -203,3 +204,26 @@ export function computeActivityEpisodes(): void {
   }
   return result;
   }
+
+  export function computeMaxBuriedness(): void {
+  let max = 0;
+  const maxS = get(maxStep);
+  const snapshot = new Map<number, SimEntity>(
+    Array.from(sim.baseEntities.entries()).map(([k, v]) => [k, { ...v }])
+  );
+
+  const scan = () => {
+    for (const e of snapshot.values()) {
+      if (e.urn !== EntityURN.CIVILIAN) continue;
+      max = Math.max(max, (e as HumanEntity).buriedness);
+    }
+  };
+
+  scan();
+  for (let step = 1; step <= maxS; step++) {
+    const changes = sim.timeline.get(step);
+    if (changes) applyChanges(snapshot, changes);
+    scan();
+  }
+  maxBuriedness.set(max);
+}

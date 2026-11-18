@@ -32,6 +32,7 @@
     pinnedAgentId,
     selectedId,
     simEvents,
+    maxBuriedness,
   } from "$lib/stores/simulation";
   import type { OrthographicViewState, PickingInfo } from "@deck.gl/core";
   import { Deck, OrthographicView } from "@deck.gl/core";
@@ -238,6 +239,79 @@
     return _bubbleAtlas;
   }
 
+    // ── 埋没度のゲージ ──
+  const GAUGE_COLOR = "rgb(200,100,40)";   // ゲージの色（1色だけ）
+
+  let _gaugeAtlas: EmojiAtlas | null = null;
+  let _gaugeSteps = 0;                      // 今の絵が、何段階用か
+
+  function getGaugeAtlas(steps: number): EmojiAtlas {
+    if (_gaugeAtlas && _gaugeSteps === steps) return _gaugeAtlas;
+    const S = 64;
+    const R = 26;
+    const COLS = 10;                        // 1行に並べる枚数
+    const rows = Math.ceil(steps / COLS);
+    const canvas = document.createElement("canvas");
+    canvas.width = S * COLS;
+    canvas.height = S * rows;
+    const ctx = canvas.getContext("2d")!;
+    ctx.lineWidth = 7;
+
+    const mapping: IconMapping = {};
+    for (let i = 1; i <= steps; i++) {
+      const col = (i - 1) % COLS;
+      const row = Math.floor((i - 1) / COLS);
+      const cx = S * col + S / 2;
+      const cy = S * row + S / 2;
+      const start = -Math.PI / 2;
+
+      ctx.strokeStyle = "rgba(0,0,0,0.18)";
+      ctx.beginPath();
+      ctx.arc(cx, cy, R, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.strokeStyle = GAUGE_COLOR;
+      ctx.beginPath();
+      ctx.arc(cx, cy, R, start, start + (Math.PI * 2 * i) / steps);
+      ctx.stroke();
+
+      mapping[`g${i}`] = { x: S * col, y: S * row, width: S, height: S, anchorX: S / 2, anchorY: S / 2, mask: false };
+    }
+    _gaugeAtlas = { atlas: canvas.toDataURL(), mapping };
+    _gaugeSteps = steps;
+    return _gaugeAtlas;
+  }
+
+  // ── 搬送待ちのバッジ（仮：⏳。あとで担架の画像に差し替える） ──
+  let _waitAtlas: EmojiAtlas | null = null;
+
+  function getWaitAtlas(): EmojiAtlas {
+    if (_waitAtlas) return _waitAtlas;
+    const S = 64;
+    const canvas = document.createElement("canvas");
+    canvas.width = S;
+    canvas.height = S;
+    const ctx = canvas.getContext("2d")!;
+
+    ctx.beginPath();
+    ctx.arc(S / 2, S / 2, S / 2 - 3, 0, Math.PI * 2);
+    ctx.fillStyle = "white";
+    ctx.fill();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "rgba(0,0,0,0.35)";
+    ctx.stroke();
+
+    ctx.font = `${S * 0.6}px ${EMOJI_FONT}`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("⏳", S / 2, S / 2 + 2);
+
+    const mapping: IconMapping = {
+      wait: { x: 0, y: 0, width: S, height: S, anchorX: S / 2, anchorY: S / 2, mask: false },
+    };
+    _waitAtlas = { atlas: canvas.toDataURL(), mapping };
+    return _waitAtlas;
+  }
 
   function agentColor(
     urn: number,
@@ -673,7 +747,40 @@
       }
       return key ? [{ agent: a, key }] : [];
      })
+            const maxB = get(maxBuriedness);
+      const steps = Math.max(1, Math.round(maxB));
+      const gaugeAtlas = getGaugeAtlas(steps);
+      const gaugeLayer = new IconLayer({
+        id: "civilian-gauge",
+        data: maxB <= 0 ? [] : civilians.filter((c) => c.buriedness > 0),
+        getPosition: (d: HumanEntity) => [d.x, d.y],
+        getIcon: (d: HumanEntity) => `g${Math.min(steps, Math.max(1, Math.round(d.buriedness)))}`,
+        getSize: 34,
+        sizeUnits: "pixels",
+        iconAtlas: gaugeAtlas.atlas,
+        iconMapping: gaugeAtlas.mapping,
+        pickable: false,
+      });
 
+      // 搬送待ち：掘り終わって(埋没0)、負傷していて、生きていて、避難所の外
+      const nowStep = get(currentStep);
+      const waiting = nowStep < 2 ? [] : civilians.filter((c) =>
+        c.hp > 0 && c.buriedness === 0 && c.damage > 0 &&
+        emap.get(c.position)?.urn !== EntityURN.REFUGE
+      );
+      const waitAtlas = getWaitAtlas();
+      const waitLayer = new IconLayer({
+        id: "civilian-waiting",
+        data: waiting,
+        getPosition: (d: HumanEntity) => [d.x, d.y],
+        getIcon: () => "wait",
+        getSize: 20,
+        sizeUnits: "pixels",
+        getPixelOffset: [12, -12],
+        iconAtlas: waitAtlas.atlas,
+        iconMapping: waitAtlas.mapping,
+        pickable: false,
+      });
 
     if (displayMode === "emoji") {
       const { atlas, mapping } = getEmojiAtlas();
@@ -704,6 +811,8 @@
           updateTriggers: { getSize: [selId], getColor: [perceivedIds] },
         });
       return [
+        gaugeLayer,
+        waitLayer,
         emojiLayer("civilians-emoji", civilians),
         new ScatterplotLayer({
           id: "rescuing-fire-brigades-highlight",
@@ -777,6 +886,8 @@
       });
     const bubbleAtlas = getBubbleAtlas();
     return [
+      gaugeLayer,
+      waitLayer,
       circleLayer("civilians-circle", civilians),
       circleLayer("rescue-agents-circle", rescueAgents),
       new ScatterplotLayer({
