@@ -46,6 +46,12 @@
   import { onDestroy, onMount } from "svelte";
   import { derived, get } from "svelte/store";
   import type {LayerCategory} from "$lib/stores/simulation";
+  import fireApproachUrl from "$lib/assets/icons/fire-approach.png";
+  import fireDigUrl from "$lib/assets/icons/fire-dig.png";
+  import ambApproachUrl from "$lib/assets/icons/amb-approach.png";
+  import ambCarryUrl from "$lib/assets/icons/amb-carry.png";
+  import policeClearUrl from "$lib/assets/icons/police-clear.png";
+  import waitStretcherUrl from "$lib/assets/icons/wait-stretcher.png";
 
   function selectEntity(id: number | null) {
     if (get(pinnedAgentId) !== null) inspectedId.set(id);
@@ -165,45 +171,70 @@
   type BubbleKey = "amb-approach" | "amb-carry" | "fire-approach" | "fire-dig" | "police-clear";
 
   interface BubbleDef {
-    glyphs: string[];                       // 吹き出しの中に並べる絵文字
+    image: string;                          // 吹き出しの中に入れる画像のURL
     color: [number, number, number];        // 枠と尻尾の色
     dashed: boolean;                        // 破線か(破線は移動中)
   }
 
-  //絵文字の種類
   const BUBBLE_DEF: Record<BubbleKey, BubbleDef> = {
-    "amb-approach":  { glyphs: ["🚑", "💨"],     color: ACTIVE_COLOR.carry,  dashed: true  },
-    "amb-carry":     { glyphs: ["🚑", "🤕"],     color: ACTIVE_COLOR.carry,  dashed: false },
-    "fire-approach": { glyphs: ["🚒", "💨"],     color: ACTIVE_COLOR.rescue, dashed: true  },
-    "fire-dig":      { glyphs: ["🚒", "\u26CF\uFE0F"], color: ACTIVE_COLOR.rescue, dashed: false },
-    "police-clear":  { glyphs: ["🚜"],           color: ACTIVE_COLOR.clear,  dashed: false },
+    "amb-approach":  { image: ambApproachUrl,  color: ACTIVE_COLOR.carry,  dashed: true  },
+    "amb-carry":     { image: ambCarryUrl,     color: ACTIVE_COLOR.carry,  dashed: false },
+    "fire-approach": { image: fireApproachUrl, color: ACTIVE_COLOR.rescue, dashed: true  },
+    "fire-dig":      { image: fireDigUrl,      color: ACTIVE_COLOR.rescue, dashed: false },
+    "police-clear":  { image: policeClearUrl,  color: ACTIVE_COLOR.clear,  dashed: false },
   }
 
-  let _bubbleAtlas: EmojiAtlas | null = null;
+  // ── 画像の読み込み（非同期） ──
+  const _icons = new Map<string, HTMLImageElement>();
 
-  function getBubbleAtlas(): EmojiAtlas {
+  function loadIcon(url: string): HTMLImageElement {
+    let img = _icons.get(url);
+    if (!img) {
+      img = new Image();
+      img.src = url;
+      _icons.set(url, img);
+    }
+    return img;
+  }
+
+  function iconReady(url: string): boolean {
+    const img = _icons.get(url);
+    return !!img && img.complete && img.naturalWidth > 0;
+  }
+
+  // 起動時に、全部の読み込みを始めておく
+  Object.values(BUBBLE_DEF).forEach((d) => loadIcon(d.image));
+  loadIcon(waitStretcherUrl);
+
+    let _bubbleAtlas: EmojiAtlas | null = null;
+    // 画像がそろうまでの、からの絵（透明な1ピクセル）。IconLayer は、絵が無いとレイヤーを作る時点でエラーになる
+    const EMPTY_ATLAS: EmojiAtlas = {
+      atlas: "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+      mapping: {},
+    };
+
+  // 画像がそろうまでは null を返す（作らない。キャッシュもしない）
+  function getBubbleAtlas(): EmojiAtlas | null {
     if (_bubbleAtlas) return _bubbleAtlas;
-    const G = 40;     // 絵文字1つの大きさ（px）
+    const keys = Object.keys(BUBBLE_DEF) as BubbleKey[];
+    if (!keys.every((k) => iconReady(BUBBLE_DEF[k].image))) return null;
+
+    const G = 64;     // 画像の大きさ（px）
     const PAD = 8;    // 吹き出しの内側の余白
     const TAIL = 14;  // 尻尾の高さ
     const H = G + PAD * 2 + TAIL;     // 画像全体の高さ
     const bodyH = H - TAIL;           // 吹き出しの本体の高さ
-    const keys = Object.keys(BUBBLE_DEF) as BubbleKey[];
-    const widths = keys.map((k) => BUBBLE_DEF[k].glyphs.length * G + PAD * 2);
+    const w = G + PAD * 2;            // 吹き出し1つの幅（全部同じ）
 
     const canvas = document.createElement("canvas");
-    canvas.width = widths.reduce((a, b) => a + b, 0);
+    canvas.width = w * keys.length;
     canvas.height = H;
     const ctx = canvas.getContext("2d")!;
-    ctx.font = `${G * 0.82}px ${EMOJI_FONT}`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
 
     const mapping: IconMapping = {};
-    let x0 = 0;
     keys.forEach((key, i) => {
       const def = BUBBLE_DEF[key];
-      const w = widths[i];
+      const x0 = w * i;
       const [r, g, b] = def.color;
       const css = `rgb(${r},${g},${b})`;
 
@@ -227,13 +258,10 @@
       ctx.fillStyle = css;
       ctx.fill();
 
-      // 絵文字
-      def.glyphs.forEach((glyph, j) => {
-        ctx.fillText(glyph, x0 + PAD + G * j + G / 2, PAD + G / 2);
-      });
+      // 画像
+      ctx.drawImage(loadIcon(def.image), x0 + PAD, PAD, G, G);
 
       mapping[key] = { x: x0, y: 0, width: w, height: H, anchorX: w / 2, anchorY: H, mask: false };
-      x0 += w;
     });
     _bubbleAtlas = { atlas: canvas.toDataURL(), mapping };
     return _bubbleAtlas;
@@ -282,17 +310,19 @@
     return _gaugeAtlas;
   }
 
-  // ── 搬送待ちのバッジ（仮：⏳。あとで担架の画像に差し替える） ──
+    // ── 搬送待ちのバッジ（担架の画像） ──
   let _waitAtlas: EmojiAtlas | null = null;
 
-  function getWaitAtlas(): EmojiAtlas {
+  function getWaitAtlas(): EmojiAtlas | null {
     if (_waitAtlas) return _waitAtlas;
+    if (!iconReady(waitStretcherUrl)) return null;
     const S = 64;
     const canvas = document.createElement("canvas");
     canvas.width = S;
     canvas.height = S;
     const ctx = canvas.getContext("2d")!;
 
+    // 白い丸（画像が地図に埋もれないように）
     ctx.beginPath();
     ctx.arc(S / 2, S / 2, S / 2 - 3, 0, Math.PI * 2);
     ctx.fillStyle = "white";
@@ -301,17 +331,15 @@
     ctx.strokeStyle = "rgba(0,0,0,0.35)";
     ctx.stroke();
 
-    ctx.font = `${S * 0.6}px ${EMOJI_FONT}`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText("⏳", S / 2, S / 2 + 2);
+    // 担架の画像
+    ctx.drawImage(loadIcon(waitStretcherUrl), 9, 9, S - 18, S - 18);
 
     const mapping: IconMapping = {
       wait: { x: 0, y: 0, width: S, height: S, anchorX: S / 2, anchorY: S / 2, mask: false },
     };
     _waitAtlas = { atlas: canvas.toDataURL(), mapping };
     return _waitAtlas;
-  }
+  } 
 
   function agentColor(
     urn: number,
@@ -768,10 +796,10 @@
         c.hp > 0 && c.buriedness === 0 && c.damage > 0 &&
         emap.get(c.position)?.urn !== EntityURN.REFUGE
       );
-      const waitAtlas = getWaitAtlas();
+      const waitAtlas = getWaitAtlas() ?? EMPTY_ATLAS;
       const waitLayer = new IconLayer({
         id: "civilian-waiting",
-        data: waiting,
+        data: waitAtlas === EMPTY_ATLAS ? [] : waiting, 
         getPosition: (d: HumanEntity) => [d.x, d.y],
         getIcon: () => "wait",
         getSize: 20,
@@ -884,8 +912,34 @@
           getFillColor: [actions, perceivedIds],
         },
       });
-    const bubbleAtlas = getBubbleAtlas();
-    return [
+      const bubbleAtlas = getBubbleAtlas() ?? EMPTY_ATLAS;     
+      // 吹き出し1つ分のデータ：どの隊で,どの種類か
+      type Pin = { agent: HumanEntity; key: BubbleKey };
+
+      // 出す対象.絵がまだ無いとき,表示設定で隠しているとき,詳細画面のときは,空にする
+      const pins: Pin[] =
+      bubbleAtlas === EMPTY_ATLAS || hidden.has("rescueTargets") || alwaysFollow ? [] : activeAgents; 
+      // 吹き出しのレイヤーを作る関数.minPx＝全体表示のときの大きさ(px)、maxPx＝拡大したときの最大(px)
+      const pinLayer = (id: string, data: Pin[], minPx: number, maxPx: number) =>
+      new IconLayer({
+        id,
+        data,
+        getPosition: (d: Pin) => [d.agent.x, d.agent.y],
+        getIcon: (d: Pin) => d.key,
+        getSize: minPx / 2 ** fitZoom,
+        sizeUnits: "common",
+        sizeMinPixels: minPx,
+        sizeMaxPixels: maxPx,
+        iconAtlas: bubbleAtlas.atlas,
+        iconMapping: bubbleAtlas.mapping,
+        pickable: true,
+        onClick: (info: PickingInfo) => selectEntity(
+          (info.object as { agent: HumanEntity } | undefined)?.agent.id ?? null,
+        ),
+        updateTriggers: { getSize:[fitZoom]},
+      });
+
+      return [
       gaugeLayer,
       waitLayer,
       circleLayer("civilians-circle", civilians),
@@ -905,21 +959,9 @@
         updateTriggers: { getRadius: [selId] },
       }),
 
-      // 仮：活動中のエージェントの上に出すアイコン
-      new IconLayer({
-        id: "active-pins",
-        data: hidden.has("rescueTargets") || alwaysFollow ? [] : activeAgents,
-        getPosition: (d: { agent: HumanEntity; key: BubbleKey }) => [d.agent.x, d.agent.y],
-        getIcon: (d: { agent: HumanEntity; key: BubbleKey }) => d.key,
-        getSize: (d: { agent: HumanEntity; key: BubbleKey }) => (d.key === "police-clear" ? 30 : 40),
-        sizeUnits: "pixels",
-        iconAtlas: bubbleAtlas.atlas,
-        iconMapping: bubbleAtlas.mapping,
-        pickable: true,
-        onClick: (info: PickingInfo) => selectEntity(
-            (info.object as { agent: HumanEntity } | undefined)?.agent.id ?? null,
-        ),
-      }),
+      // 仮：活動中のエージェントの上に出すアイコン（拡大すると，大きくなる）
+      pinLayer("active-pins", pins.filter((p) => p.key !== "police-clear"), 56, 140),
+      pinLayer("active-pins-clear", pins.filter((p) => p.key === "police-clear"), 40, 100),
     ];
   }
 
