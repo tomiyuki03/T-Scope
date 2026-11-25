@@ -101,7 +101,7 @@
 <style>
   .flow-bar {
     position: absolute;
-    left: 50%;
+    left: calc((100% - 268px) / 2);
     bottom: 12px;
     transform: translateX(-50%);
     z-index: 10;

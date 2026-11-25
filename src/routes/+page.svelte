@@ -167,6 +167,9 @@
         </div>
         <div style="flex: 1; height: 100%; position: relative;">
           <SimMap alwaysFollow={true} />
+            {#if !screenshotMode}
+              <CivilianFlowBar />
+            {/if}
         </div>
       </div>
     {:else}
@@ -214,7 +217,6 @@
       </div>
       <IdleAgentsPanel leftOffset={leftOffset + PANEL_GAP} />
       <InfoPanel />
-      <CivilianFlowBar />
       <CivilianStatusPanel />
     {/if}
 
