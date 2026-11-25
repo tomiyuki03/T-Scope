@@ -1,13 +1,21 @@
 <script lang="ts">
   import { t } from "$lib/i18n";
-  import { EntityURN } from "$lib/rcrs/urns";
+  import { CommandURN, EntityURN } from "$lib/rcrs/urns";
   import {
     civilianStories,
     currentStep,
     seekToStep,
     selectedEntity,
+    activityEpisodes,
+    agentActions,
+    type ActivityEpisode,
+    type AgentAction,
     type CivilianStory,
   } from "$lib/stores/simulation";
+  import type { HumanEntity } from "$lib/rcrs/types";
+  import deadFireUrl from "$lib/assets/icons/dead-fire.png";
+  import deadAmbUrl from "$lib/assets/icons/dead-amb.png";
+  import deadPoliceUrl from "$lib/assets/icons/dead-police.png";
   import ambCarryUrl from "$lib/assets/icons/amb-carry.png";
   import fireDigUrl from "$lib/assets/icons/fire-dig.png";
   import waitStretcherUrl from "$lib/assets/icons/wait-stretcher.png";
@@ -15,11 +23,17 @@
   import refugeUrl from "$lib/assets/icons/refuge.png";
   import freeUrl from "$lib/assets/icons/free.png";
   import deadUrl from "$lib/assets/icons/dead.png";
+  import fireApproachUrl from "$lib/assets/icons/fire-approach.png";
+  import ambApproachUrl from "$lib/assets/icons/amb-approach.png";
+  import policeMoveUrl from "$lib/assets/icons/police-move.png";
+  import policeClearUrl from "$lib/assets/icons/police-clear.png";
 
-  // 流れの段階の名前と、並べる順番
-  type FlowKey = "free" | "buried" | "rescueStart" | "waiting" | "carried" | "refuge" | "dead";
-  const FLOW_ORDER: FlowKey[] = [ "free", "buried", "rescueStart", "waiting", "carried", "refuge", "dead"];
-
+  // 市民の状態の段階（CivilianStory のキーと同じ）
+  type CivilianFlowKey = "free" | "buried" | "rescueStart" | "waiting" | "carried" | "refuge" | "dead";
+  type AgentFlowKey = | "moveFire" | "moveAmb" | "movePolice" | "approachFire" | "approachAmb" | "dig" | "carry" | "clear" | "deadFire" | "deadAmb" | "deadPolice";
+  // 帯に出せる段階（市民の段階 ＋ 隊員の死亡）
+  type FlowKey = CivilianFlowKey | AgentFlowKey;
+  const FLOW_ORDER: CivilianFlowKey[] = ["free", "buried", "rescueStart", "waiting", "carried", "refuge", "dead"];
   // 段階の絵。buried と refuge は、画像がまだ無いので、未設定（文字で出す）
   const FLOW_ICON: Partial<Record<FlowKey, string>> = {
     rescueStart: fireDigUrl,
@@ -29,6 +43,17 @@
     refuge: refugeUrl,
     free: freeUrl,
     dead: deadUrl,
+    deadFire: deadFireUrl,
+    deadAmb: deadAmbUrl,
+    deadPolice: deadPoliceUrl,
+    moveFire: fireApproachUrl,
+    moveAmb: ambApproachUrl,
+    movePolice: policeMoveUrl,
+    approachFire: fireApproachUrl,
+    approachAmb: ambApproachUrl,
+    dig: fireDigUrl,
+    carry: ambCarryUrl,
+    clear: policeClearUrl,
   };
 
   function flowLabel(k: FlowKey): string {
@@ -39,13 +64,24 @@
       case "carried": return $t("flow.carried");
       case "refuge": return $t("flow.refuge");
       case "free": return $t("flow.free");
-      case "dead": return $t("flow.dead");
+      case "dead":
+      case "deadFire":
+      case "deadAmb":
+      case "deadPolice": return $t("flow.dead");
+      case "moveFire":
+      case "moveAmb":
+      case "movePolice": return $t("flow.move");
+      case "approachFire":
+      case "approachAmb": return $t("flow.approach");
+      case "dig": return $t("flow.rescue");
+      case "carry": return $t("flow.carried");
+      case "clear": return $t("flow.clear");
     }
   }
 
   type FlowStage = { key: FlowKey; step: number; now: boolean; future: boolean };
 
-  // 1人の流れから、画面に出す段階の並びを作る
+  // 市民1人の流れから、画面に出す段階の並びを作る
   function flowStages(flow: CivilianStory | undefined, now: number): FlowStage[] {
     if (!flow) return [];
     // 記録がある段階だけ、順に並べる
@@ -61,11 +97,54 @@
     return list.map((s, i) => ({ ...s, now: i === cur, future: i > cur }));
   }
 
-  // 選んでいるものが市民のときだけ、その流れを出す
-  const stages = $derived.by(() => {
+  const AGENT_KEYS: Partial<Record<number, { move: FlowKey; approach?: FlowKey; work: FlowKey; dead: FlowKey }>> = {
+    [EntityURN.FIRE_BRIGADE]:   { move: "moveFire",   approach: "approachFire", work: "dig",   dead: "deadFire" },
+    [EntityURN.AMBULANCE_TEAM]: { move: "moveAmb",    approach: "approachAmb",  work: "carry", dead: "deadAmb" },
+    [EntityURN.POLICE_FORCE]:   { move: "movePolice",                           work: "clear", dead: "deadPolice" },
+    };
+
+  function agentStages(
+    e: HumanEntity,
+    step: number,
+    episodes: ActivityEpisode[],
+    action: AgentAction | undefined,
+  ): FlowStage[] {
+    const k = AGENT_KEYS[e.urn];
+    if (!k) return [];                                              // 隊員でない（建物など）
+    if (e.hp <= 0) return [{ key: k.dead, step, now: true, future: false }];
+
+    // 土木隊：「向かう」の段階は無い。清掃中なら、[移動中] › [清掃]
+    if (!k.approach) {
+      const clearing = action?.urn === CommandURN.AK_CLEAR || action?.urn === CommandURN.AK_CLEAR_AREA;
+      return clearing
+        ? [
+            { key: k.move, step, now: false, future: false },
+            { key: k.work, step, now: true, future: false },
+          ]
+        : [{ key: k.move, step, now: true, future: false }];
+    }
+
+    // 消防・救急：いまのステップが、活動の区間の中か
+    const eps = episodes.filter(
+      (ep) => ep.agentId === e.id && step >= ep.approachStart && step <= ep.end,
+    );
+    const ep = eps.find((ep) => step >= ep.taskStart) ?? eps[0];    // 重なったら、作業中を優先
+    if (!ep) return [{ key: k.move, step, now: true, future: false }];   // ターゲット無し
+    const working = step >= ep.taskStart;
+    return [
+      { key: k.approach, step: ep.approachStart, now: !working, future: false },
+      { key: k.work, step: ep.taskStart, now: working, future: !working },
+    ];
+  }
+  
+  const stages = $derived.by((): FlowStage[] => {
     const e = $selectedEntity;
-    if (!e || e.urn !== EntityURN.CIVILIAN) return [];
-    return flowStages($civilianStories.get(e.id), $currentStep);
+    if (!e) return [];
+    // 選んでいるものが市民のときだけ、その流れを出す
+    if (e.urn === EntityURN.CIVILIAN) {
+      return flowStages($civilianStories.get(e.id), $currentStep);
+    }
+    return agentStages(e as HumanEntity, $currentStep, $activityEpisodes, $agentActions.get(e.id));
   });
   const next = $derived(stages.find((s) => s.future));
 </script>

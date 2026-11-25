@@ -134,6 +134,9 @@ const en = {
   "flow.refuge": "Shelter",
   "flow.free": "Moving", //避難中に変える
   "flow.dead": "Dead",
+  "flow.move": "Moving",
+  "flow.approach": "Heading",
+  "flow.clear": "Clearing",
 } as const;
 
 type TranslationKey = keyof typeof en;
@@ -268,6 +271,9 @@ const ja: Record<TranslationKey, string> = {
   "flow.refuge": "避難所",
   "flow.free": "避難中",
   "flow.dead": "死亡",
+  "flow.move": "移動中",
+  "flow.approach": "向かう",
+  "flow.clear": "清掃",
 };
 
 export const dictionaries: Record<Locale, Record<TranslationKey, string>> = {
