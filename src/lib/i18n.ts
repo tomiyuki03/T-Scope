@@ -5,7 +5,7 @@ export type Locale = "en" | "ja";
 const STORAGE_KEY = "simscope.locale";
 
 const en = {
-  "app.title": "SimScope",
+  "app.title": "T-Scope",
   "common.language": "Language",
   "language.en": "EN",
   "language.ja": "JA",
@@ -127,12 +127,19 @@ const en = {
   "fieryness.6": "Moderate Damage",
   "fieryness.7": "Severe Damage",
   "fieryness.8": "Completely Burned",
+  "flow.buried": "Buried",
+  "flow.rescue": "Rescue",
+  "flow.waiting": "Waiting",
+  "flow.carried": "Carry",
+  "flow.refuge": "Shelter",
+  "flow.free": "Moving", //避難中に変える
+  "flow.dead": "Dead",
 } as const;
 
 type TranslationKey = keyof typeof en;
 
 const ja: Record<TranslationKey, string> = {
-  "app.title": "SimScope",
+  "app.title": "T-Scope",
   "common.language": "言語",
   "language.en": "EN",
   "language.ja": "JA",
@@ -254,6 +261,13 @@ const ja: Record<TranslationKey, string> = {
   "fieryness.6": "中度損傷",
   "fieryness.7": "重度損傷",
   "fieryness.8": "全焼",
+  "flow.buried": "埋没",
+  "flow.rescue": "救出",
+  "flow.waiting": "搬送待ち",
+  "flow.carried": "搬送",
+  "flow.refuge": "避難所",
+  "flow.free": "避難中",
+  "flow.dead": "死亡",
 };
 
 export const dictionaries: Record<Locale, Record<TranslationKey, string>> = {

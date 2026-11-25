@@ -4,6 +4,7 @@
   import ControlPanel from "$lib/components/ControlPanel.svelte";
   import IdleAgentsPanel from "$lib/components/IdleAgentsPanel.svelte";
   import InfoPanel from "$lib/components/InfoPanel.svelte";
+  import CivilianFlowBar from "$lib/components/CivilianFlowBar.svelte";
   import LayerFilterPanel from "$lib/components/LayerFilterPanel.svelte";
   import ScorePanel from "$lib/components/ScorePanel.svelte";
   import SimMap from "$lib/components/SimMap.svelte";
@@ -213,6 +214,7 @@
       </div>
       <IdleAgentsPanel leftOffset={leftOffset + PANEL_GAP} />
       <InfoPanel />
+      <CivilianFlowBar />
       <CivilianStatusPanel />
     {/if}
 

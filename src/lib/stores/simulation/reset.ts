@@ -1,6 +1,7 @@
 import { sim } from "./data";
 import {
   activityEpisodes,
+  civilianStories,
   maxBuriedness,
   agentActions,
   agentCommStats,
@@ -49,5 +50,6 @@ export function resetSimulationState() {
   inspectedId.set(null);
   simEvents.set([]);
   maxBuriedness.set(0);
+  civilianStories.set(new Map());
   activityEpisodes.set([]);
 }

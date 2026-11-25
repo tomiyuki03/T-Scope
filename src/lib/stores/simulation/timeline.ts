@@ -23,6 +23,9 @@ import {
   type ActivityEpisode,
   type ActivityKind,
   type ActivityPhase,
+  civilianStories,
+  type CivilianStage,
+  type CivilianStory,
 } from "./state";
 
 type StepRoute = (step: number) => boolean;
@@ -226,4 +229,67 @@ export function computeActivityEpisodes(): void {
     scan();
   }
   maxBuriedness.set(max);
+}
+
+// 市民の今の段階を、1つに決める（地図・パネル・経過で、同じ判定を使う）
+export function civilianStage(
+  h: HumanEntity,
+  emap: Map<number, SimEntity>,
+  step: number,
+): CivilianStage {
+  const place = emap.get(h.position)?.urn;                       // 居る場所の種別
+  if (place === EntityURN.AMBULANCE_TEAM) return "carried";      // 救急隊に運ばれている
+  if (place === EntityURN.REFUGE) return "refuge";               // 避難所の中
+  if (h.hp <= 0) return "dead";                                  // 死亡
+  if (h.buriedness > 0) return "buried";                         // 埋没している
+  if (step >= 2 && h.damage > 0) return "waiting";               // 掘り終わった／もともと動けない（搬送待ち）
+  return "free";                                                 // 無傷。自力で動ける
+}
+
+//市民がその初めてその状態になったステップを記録する
+export function computeCivilianStories(): void {
+  const stories = new Map<number, CivilianStory>();
+
+  // 「その段階に、初めてなったステップ」を記録する（すでに記録があれば、何もしない）
+  const mark = (id: number, key: CivilianStage | "rescueStart", step: number) => {
+    let s = stories.get(id);
+    if (!s) {
+      s = {};
+      stories.set(id, s);
+    }
+    if (s[key] === undefined) s[key] = step;
+  };
+
+  // 救出の開始は、simEvents から（対象が市民のものだけ）
+  for (const e of get(simEvents)) {
+    if (e.type !== "rescue_start") continue;
+    if (sim.baseEntities.get(e.targetId)?.urn !== EntityURN.CIVILIAN) continue;
+    mark(e.targetId, "rescueStart", e.step);
+  }
+
+  // 段階は全ステップを再生しながら調べる
+  const maxS = get(maxStep);
+  const snapshot = new Map<number, SimEntity>(
+    Array.from(sim.baseEntities.entries()).map(([k, v]) => [k, { ...v }])
+  );
+  const scan = (step: number) => {
+    for (const e of snapshot.values()) {
+      if (e.urn !== EntityURN.CIVILIAN) continue;
+      const h = e as HumanEntity;
+      const stage = civilianStage(h, snapshot, step);
+      if (stage === "free") {
+        if ( step >= 2 ) mark(h.id, "free", 0); //ステップ2以降で無傷なら
+        continue;
+      }
+      mark(h.id, stage, step);
+    }
+  };
+
+  scan(0);
+  for (let step = 1; step <= maxS; step++) {
+    const changes = sim.timeline.get(step);
+    if (changes) applyChanges(snapshot, changes);
+    scan(step);
+  }
+  civilianStories.set(stories);
 }

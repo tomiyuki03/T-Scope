@@ -41,6 +41,13 @@ export interface ActivityEpisode {
 
 export const activityEpisodes = writable<ActivityEpisode[]>([]);
 
+// 市民の今の段階
+export type CivilianStage = "carried" | "refuge" | "dead" | "buried" | "waiting" | "free";
+// 各段階に初めてなったステップ（その段階にならなければ undefined）
+export type CivilianStory = Partial<Record<CivilianStage | "rescueStart", number>>;
+// 市民のID → その市民の経過
+export const civilianStories = writable<Map<number, CivilianStory>>(new Map());
+
 // ── Source state ──────────────────────────────────────────────────────────────
 
 export const mode = writable<Mode>("idle");
