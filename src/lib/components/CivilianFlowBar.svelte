@@ -152,7 +152,14 @@
 {#if stages.length > 0}
   <div class="flow-bar">
     {#each stages as s, i (s.key)}
-      {#if i > 0}<span class="arrow">›</span>{/if}
+      {#if i > 0}
+        <span class="link">
+          <span class="arrow">›</span>
+          {#if s.key === next?.key}
+            <span class="eta">{$t("flow.after")}{s.step - $currentStep}</span>
+          {/if}
+        </span>
+      {/if}
       <div class="stage" class:now={s.now} class:future={s.future}>
         <button class="icon" title={flowLabel(s.key)} onclick={() => seekToStep(s.step)}>
           {#if FLOW_ICON[s.key]}
@@ -164,16 +171,6 @@
         <span class="label">{s.now ? flowLabel(s.key) : ""}</span>
       </div>
     {/each}
-    {#if next}
-      <button class="next" title={flowLabel(next.key)} onclick={() => seekToStep(next.step)}>
-        ▶
-        {#if FLOW_ICON[next.key]}
-          <img src={FLOW_ICON[next.key]} alt="" />
-        {:else}
-          <span class="text">{flowLabel(next.key)}</span>
-        {/if}
-      </button>
-    {/if}
   </div>
 {/if}
 
@@ -196,6 +193,8 @@
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
   }
   .arrow { opacity: 0.5; font-size: 20px; }
+  .link { display: flex; flex-direction: column; align-items: center; }
+  .eta { font-size: 13px; font-weight: 500; white-space: nowrap; }
   .stage { display: flex; flex-direction: column; align-items: center; gap: 2px; }
   .icon {
     width: 56px; height: 56px; padding: 3px;
@@ -208,11 +207,4 @@
   .stage.future .icon { opacity: 0.4; }
   .label { font-size: 13px; font-weight: 500; min-height: 16px; }
   .text { font-size: 12px; line-height: 1.1; }
-  .next {
-    display: flex; align-items: center; gap: 6px; padding: 6px 12px;
-    margin-left: 6px; font-size: 18px;
-    border: 2px solid var(--panel-border); border-radius: 12px;
-    background: transparent; color: inherit; cursor: pointer;
-  }
-  .next img { width: 40px; height: 40px; object-fit: contain; }
 </style>
