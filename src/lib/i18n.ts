@@ -137,6 +137,7 @@ const en = {
   "flow.move": "Moving",
   "flow.approach": "Heading",
   "flow.clear": "Clearing",
+  "flow.after": "in ",
 } as const;
 
 type TranslationKey = keyof typeof en;
@@ -274,6 +275,7 @@ const ja: Record<TranslationKey, string> = {
   "flow.move": "移動中",
   "flow.approach": "向かう",
   "flow.clear": "清掃",
+  "flow.after": "あと",
 };
 
 export const dictionaries: Record<Locale, Record<TranslationKey, string>> = {
